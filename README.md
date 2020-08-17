@@ -7,14 +7,14 @@
 ## Usage
 
 ```
-# Delete ConfigMaps not mounted on any Pods and in the namespace/app
-$ kubectl prune configmaps -n app
+# Delete ConfigMaps not mounted on any Pods and in the current namespace and context
+$ kubectl prune configmaps
+
+# Delete ConfigMaps not mounted on any Pods and in the namespace/my-namespace and context/my-context
+$ kubectl prune cm -n my-namespace --context my-context
 
 # Delete Secrets not mounted on any Pods and across all namespace
 $ kubectl prune secret --all-namespaces
-
-# Run the command as client-side dry-run
-$ kubectl prune cm --dry-run=client
 
 # Delete Pods not managed by any ReplicaSets and ReplicaSets not managed by any Deployments
 $ kubectl prune po,rs

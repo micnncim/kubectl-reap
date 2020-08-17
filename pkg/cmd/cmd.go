@@ -20,8 +20,11 @@ import (
 
 const (
 	pruneExample = `
-  # Delete ConfigMaps not mounted on any Pods and in the namespace/app
-  $ kubectl prune configmaps -n app
+  # Delete ConfigMaps not mounted on any Pods and in the current namespace and context
+  $ kubectl prune configmaps
+
+  # Delete ConfigMaps not mounted on any Pods and in the namespace/my-namespace and context/my-context
+  $ kubectl prune cm -n my-namespace --context my-context
 
   # Delete Secrets not mounted on any Pods and across all namespace
   $ kubectl prune secret --all-namespaces
@@ -41,8 +44,6 @@ type Options struct {
 	configFlags *genericclioptions.ConfigFlags
 	printFlags  *genericclioptions.PrintFlags
 
-	factory cmdutil.Factory
-
 	namespace     string
 	context       string
 	allNamespaces bool
@@ -58,12 +59,10 @@ type Options struct {
 
 func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 	configFlags := genericclioptions.NewConfigFlags(true)
-	factory := cmdutil.NewFactory(configFlags)
 
 	return &Options{
 		configFlags: configFlags,
 		printFlags:  genericclioptions.NewPrintFlags("deleted").WithTypeSetter(scheme.Scheme),
-		factory:     factory,
 		chunkSize:   500,
 		IOStreams:   ioStreams,
 	}
@@ -166,7 +165,7 @@ func (o *Options) Run(resourceTypes []string) error {
 		return err
 	}
 
-	clientset, err := o.factory.KubernetesClientSet()
+	clientset, err := cmdutil.NewFactory(o.configFlags).KubernetesClientSet()
 	if err != nil {
 		return err
 	}
@@ -178,7 +177,7 @@ func (o *Options) Run(resourceTypes []string) error {
 		usedSecrets map[string]struct{} = make(map[string]struct{})
 		// key=ReplicaSet.Name
 		rss map[string]struct{} = make(map[string]struct{})
-		// key=Deployment.UNameID
+		// key=Deployment.Name
 		deploys map[string]struct{} = make(map[string]struct{})
 	)
 
@@ -186,7 +185,7 @@ func (o *Options) Run(resourceTypes []string) error {
 
 	namespace := o.namespace
 	if o.allNamespaces {
-		namespace = "" // empty namespace indicates all namespace in k8s.io/client-go
+		namespace = metav1.NamespaceAll
 	}
 
 	if pruneCms || pruneSecrets {
