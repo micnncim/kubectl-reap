@@ -4,6 +4,12 @@
 
 `kubectl-prune` prunes unused ConfigMap, Secret, Pod, and ReplicaSet resources.
 
+## Installation
+
+```
+$ GO111MODULE=on go get github.com/micnncim/kubectl-prune/cmd/kubectl-prune
+```
+
 ## Usage
 
 ```console
