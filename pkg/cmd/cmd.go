@@ -115,7 +115,7 @@ func (o *Options) Complete(cmd *cobra.Command) (err error) {
 
 	printer, err := o.printFlags.ToPrinter()
 	if err != nil {
-		return err
+		return
 	}
 	o.printObj = func(obj runtime.Object) error {
 		return printer.PrintObj(obj, o.Out)
