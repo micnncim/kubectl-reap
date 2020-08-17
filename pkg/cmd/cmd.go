@@ -72,7 +72,7 @@ func NewCmdPrune(ioStreams genericclioptions.IOStreams) *cobra.Command {
 	o := NewOptions(ioStreams)
 
 	cmd := &cobra.Command{
-		Use:     "prune TYPE",
+		Use:     "kubectl prune TYPE",
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
