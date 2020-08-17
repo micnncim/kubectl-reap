@@ -75,8 +75,13 @@ func NewCmdPrune(ioStreams genericclioptions.IOStreams) *cobra.Command {
 		Use:     "prune TYPE",
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) != 1 {
+				fmt.Fprintf(o.ErrOut, "arguments must be only resource type(s)\n")
+				return
+			}
+
 			cmdutil.CheckErr(o.Complete(cmd))
-			cmdutil.CheckErr(o.Run(args))
+			cmdutil.CheckErr(o.Run(cmdutil.NewFactory(o.configFlags), args[0]))
 		},
 	}
 
@@ -123,7 +128,7 @@ func (o *Options) Complete(cmd *cobra.Command) (err error) {
 	return
 }
 
-func (o *Options) Run(resourceTypes []string) error {
+func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 	r := resource.
 		NewBuilder(o.configFlags).
 		Unstructured().
@@ -131,7 +136,7 @@ func (o *Options) Run(resourceTypes []string) error {
 		NamespaceParam(o.namespace).
 		DefaultNamespace().
 		AllNamespaces(o.allNamespaces).
-		ResourceTypes(resourceTypes...).
+		ResourceTypes(resourceTypes).
 		RequestChunksOf(o.chunkSize).
 		SelectAllParam(true).
 		Flatten().
@@ -165,7 +170,7 @@ func (o *Options) Run(resourceTypes []string) error {
 		return err
 	}
 
-	clientset, err := cmdutil.NewFactory(o.configFlags).KubernetesClientSet()
+	clientset, err := f.KubernetesClientSet()
 	if err != nil {
 		return err
 	}
