@@ -17,7 +17,7 @@ $ kubectl prune secret --all-namespaces
 $ kubectl prune cm --dry-run=client
 
 # Delete Pods not managed by any ReplicaSets and ReplicaSets not managed by any Deployments
-$ kubectl prune po,rs`
+$ kubectl prune po,rs
 ```
 
 ## Background

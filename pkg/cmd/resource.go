@@ -161,31 +161,3 @@ func detectUsedSecretsInServiceAccounts(sas []*corev1.ServiceAccount) map[string
 
 	return usedSecrets
 }
-
-func detectUsedPods(pods []*corev1.Pod, rss []*appsv1.ReplicaSet) map[string]struct{} {
-	usedPods := make(map[string]struct{})
-
-	for _, pod := range pods {
-		for _, ownerRef := range pod.OwnerReferences {
-			for _, rs := range rss {
-				if ownerRef.UID == rs.GetUID() {
-					usedPods[ownerRef.Name] = struct{}{}
-				}
-			}
-		}
-	}
-
-	return usedPods
-}
-
-func detectUsedReplicaSets(deploys []*appsv1.Deployment) map[string]struct{} {
-	usedRss := make(map[string]struct{})
-
-	for _, deploy := range deploys {
-		for _, ownerRef := range deploy.OwnerReferences {
-			usedRss[ownerRef.Name] = struct{}{}
-		}
-	}
-
-	return usedRss
-}
