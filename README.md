@@ -82,7 +82,7 @@ Examples:
   $ kubectl prune po,rs
 
 Flags:
-  -A, --all-namespaces                 If true, prune the targeted resources accross all namespace
+  -A, --all-namespaces                 If true, prune the targeted resources across all namespace
       --allow-missing-template-keys    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats. (default true)
       --as string                      Username to impersonate for the operation
       --as-group stringArray           Group to impersonate for the operation, this flag can be repeated to specify multiple groups.
@@ -107,6 +107,8 @@ Flags:
       --user string                    The name of the kubeconfig user to use
 
 ```
+
+When you use `--all-namespaces`, `kubectl-prune` prunes resources across all namespace except `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
 
