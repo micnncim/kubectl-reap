@@ -229,6 +229,10 @@ func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 	}
 
 	if err := r.Visit(func(info *resource.Info, err error) error {
+		if info.Namespace == metav1.NamespaceSystem {
+			return nil // ignore resources in kube-system namespace
+		}
+
 		switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 		case kindConfigMap:
 			if _, ok := usedCms[info.Name]; ok {
