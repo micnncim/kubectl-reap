@@ -22,11 +22,11 @@ Examples:
   # Delete ConfigMaps not mounted on any Pods and in the current namespace and context
   $ kubectl prune configmaps
 
-  # Delete ConfigMaps not mounted on any Pods and in the namespace/my-namespace and context/my-context
-  $ kubectl prune cm -n my-namespace --context my-context
+  # Delete Secrets not mounted on any Pods and in the namespace/my-namespace and context/my-context
+  $ kubectl prune secret -n my-namespace --context my-context
 
-  # Delete Secrets not mounted on any Pods and across all namespace
-  $ kubectl prune secret --all-namespaces
+  # Delete ConfigMaps not mounted on any Pods and across all namespace
+  $ kubectl prune cm --all-namespaces
 
   # Delete Pods not managed by any ReplicaSets and ReplicaSets not managed by any Deployments
   $ kubectl prune po,rs
