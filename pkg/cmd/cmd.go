@@ -179,11 +179,11 @@ func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 		// key=ConfigMap.Name
 		usedCms = make(map[string]struct{})
 		// key=Secret.Name
-		usedSecrets map[string]struct{} = make(map[string]struct{})
+		usedSecrets = make(map[string]struct{})
 		// key=ReplicaSet.Name
-		rss map[string]struct{} = make(map[string]struct{})
+		rss = make(map[string]struct{})
 		// key=Deployment.Name
-		deploys map[string]struct{} = make(map[string]struct{})
+		deploys = make(map[string]struct{})
 	)
 
 	ctx := context.Background()
