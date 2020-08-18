@@ -10,6 +10,54 @@
 $ GO111MODULE=on go get github.com/micnncim/kubectl-prune/cmd/kubectl-prune
 ```
 
+## Examples
+
+In this example, `kubectl-prune` deletes the unused ConfigMap `config-2`.
+
+```
+$ kubectl get cm
+NAME       DATA   AGE
+config-1   1      0m15s
+config-2   1      0m10s
+
+$ cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - name: config-1-volume
+      mountPath: /var/config
+  volumes:
+  - name: config-1-volume
+    configMap:
+      name: config-1
+EOF
+
+$ kubectl get po
+NAME                     READY   STATUS              RESTARTS   AGE
+nginx                    1/1     Running             0          0m40s
+
+$ kubectl prune cm --dry-run=client
+configmap/config-2 deleted (dry run)
+
+$ kubectl get cm
+NAME       DATA   AGE
+config-1   1      1m15s
+config-2   1      1m10s
+
+$ kubectl prune cm
+configmap/config-2 deleted
+
+$ kubectl get cm
+NAME       DATA   AGE
+config-1   1      1m30s
+```
+
 ## Usage
 
 ```console
