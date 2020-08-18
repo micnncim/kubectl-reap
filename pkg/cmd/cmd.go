@@ -89,7 +89,7 @@ func NewCmdPrune(ioStreams genericclioptions.IOStreams) *cobra.Command {
 	o.printFlags.AddFlags(cmd)
 
 	cmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources accross all namespace")
+	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources across all namespace")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 
 	return cmd
