@@ -58,6 +58,8 @@ NAME       DATA   AGE
 config-1   1      1m30s
 ```
 
+**It's recommended to run `kubectl-prune` as dry-run (client or server) first before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.**
+
 ## Usage
 
 ```console
