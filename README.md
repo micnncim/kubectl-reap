@@ -23,7 +23,7 @@ $ GO111MODULE=on go get github.com/micnncim/kubectl-prune/cmd/kubectl-prune
 
 In this example, `kubectl-prune` deletes the unused ConfigMap `config-2`.
 
-```
+```console
 $ kubectl get cm
 NAME       DATA   AGE
 config-1   1      0m15s
