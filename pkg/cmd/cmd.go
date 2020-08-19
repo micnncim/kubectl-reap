@@ -35,7 +35,6 @@ type Options struct {
 	printFlags  *genericclioptions.PrintFlags
 
 	namespace     string
-	context       string
 	allNamespaces bool
 	chunkSize     int64
 
@@ -48,10 +47,8 @@ type Options struct {
 }
 
 func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
-	configFlags := genericclioptions.NewConfigFlags(true)
-
 	return &Options{
-		configFlags: configFlags,
+		configFlags: genericclioptions.NewConfigFlags(true),
 		printFlags:  genericclioptions.NewPrintFlags("deleted").WithTypeSetter(scheme.Scheme),
 		chunkSize:   500,
 		IOStreams:   ioStreams,
@@ -79,26 +76,17 @@ func NewCmdPrune(ioStreams genericclioptions.IOStreams) *cobra.Command {
 	o.printFlags.AddFlags(cmd)
 
 	cmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources across all namespace")
+	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources across all namespace except kube-system")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 
 	return cmd
 }
 
 func (o *Options) Complete(cmd *cobra.Command) (err error) {
-	clientConfig := o.configFlags.ToRawKubeConfigLoader()
-
-	o.namespace, _, err = clientConfig.Namespace()
+	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return
 	}
-
-	rawConfig, err := clientConfig.RawConfig()
-	if err != nil {
-		return
-	}
-
-	o.context = rawConfig.CurrentContext
 
 	o.dryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
 	if err != nil {
