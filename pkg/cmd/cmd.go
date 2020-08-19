@@ -30,13 +30,6 @@ const (
   $ kubectl prune po,rs`
 )
 
-const (
-	kindConfigMap  = "ConfigMap"
-	kindSecret     = "Secret"
-	kindPod        = "Pod"
-	kindReplicaSet = "ReplicaSet"
-)
-
 type Options struct {
 	configFlags *genericclioptions.ConfigFlags
 	printFlags  *genericclioptions.PrintFlags

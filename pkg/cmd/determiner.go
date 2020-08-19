@@ -11,6 +11,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	kindConfigMap  = "ConfigMap"
+	kindSecret     = "Secret"
+	kindPod        = "Pod"
+	kindReplicaSet = "ReplicaSet"
+)
+
 // determiner determines whether a resource should be pruned.
 type determiner struct {
 	// key=ConfigMap.Name
