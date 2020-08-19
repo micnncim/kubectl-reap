@@ -2,7 +2,16 @@
 
 [![actions-workflow-test][actions-workflow-test-badge]][actions-workflow-test]
 
-`kubectl-prune` prunes unused ConfigMap, Secret, Pod, and ReplicaSet resources.
+`kubectl-prune` is a kubectl plugin that prunes unused Kubernetes resources.
+
+Supported resources:
+
+- [x] ConfigMap
+- [x] Secret
+- [x] Pod
+- [x] ReplicaSet
+- [ ] PodDisruptionBudget
+- [ ] HorizontalPodAutoscaler
 
 ## Installation
 
