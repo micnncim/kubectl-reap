@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -147,85 +144,19 @@ func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 		return err
 	}
 
-	var (
-		pruneCms     bool
-		pruneSecrets bool
-		prunePods    bool
-		pruneRss     bool
-	)
-
-	if err := r.Visit(func(info *resource.Info, err error) error {
-		switch info.Object.GetObjectKind().GroupVersionKind().Kind {
-		case kindConfigMap:
-			pruneCms = true
-		case kindSecret:
-			pruneSecrets = true
-		case kindPod:
-			prunePods = true
-		case kindReplicaSet:
-			pruneRss = true
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
 	clientset, err := f.KubernetesClientSet()
 	if err != nil {
 		return err
 	}
-
-	var (
-		// key=ConfigMap.Name
-		usedCms = make(map[string]struct{})
-		// key=Secret.Name
-		usedSecrets = make(map[string]struct{})
-		// key=ReplicaSet.Name
-		rss = make(map[string]struct{})
-		// key=Deployment.Name
-		deploys = make(map[string]struct{})
-	)
-
-	ctx := context.Background()
 
 	namespace := o.namespace
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
 
-	if pruneCms || pruneSecrets {
-		pods, err := listPods(ctx, clientset, namespace)
-		if err != nil {
-			return err
-		}
-		if pruneCms {
-			usedCms = detectUsedConfigMaps(pods)
-		}
-		if pruneSecrets {
-			sas, err := listServiceAccounts(ctx, clientset, o.namespace)
-			if err != nil {
-				return err
-			}
-			usedSecrets = detectUsedSecrets(pods, sas)
-		}
-	}
-	if prunePods {
-		resp, err := listReplicaSets(ctx, clientset, namespace)
-		if err != nil {
-			return err
-		}
-		for _, v := range resp {
-			rss[v.Name] = struct{}{}
-		}
-	}
-	if pruneRss {
-		resp, err := listDeployments(ctx, clientset, namespace)
-		if err != nil {
-			return err
-		}
-		for _, v := range resp {
-			deploys[v.Name] = struct{}{}
-		}
+	determiner, err := newDeterminer(clientset, r, namespace)
+	if err != nil {
+		return err
 	}
 
 	if err := r.Visit(func(info *resource.Info, err error) error {
@@ -233,39 +164,12 @@ func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
-		case kindConfigMap:
-			if _, ok := usedCms[info.Name]; ok {
-				return nil
-			}
-		case kindSecret:
-			if _, ok := usedSecrets[info.Name]; ok {
-				return nil
-			}
-		case kindPod:
-			unstructured := info.Object.(runtime.Unstructured).UnstructuredContent()
-			var pod corev1.Pod
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, &pod); err != nil {
-				return err
-			}
-			for _, ownerRef := range pod.OwnerReferences {
-				if _, ok := rss[ownerRef.Name]; ok {
-					return nil
-				}
-			}
-		case kindReplicaSet:
-			unstructured := info.Object.(runtime.Unstructured).UnstructuredContent()
-			var rs appsv1.ReplicaSet
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, &rs); err != nil {
-				return err
-			}
-			for _, ownerRef := range rs.OwnerReferences {
-				if _, ok := deploys[ownerRef.Name]; ok {
-					return nil
-				}
-			}
-		default:
-			return fmt.Errorf("unsupported kind: %s", kind)
+		prune, err := determiner.determinePrune(info)
+		if err != nil {
+			return err
+		}
+		if !prune {
+			return nil // skip prune
 		}
 
 		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
