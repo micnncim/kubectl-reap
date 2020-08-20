@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,18 +55,14 @@ func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 	}
 }
 
-func NewCmdPrune(ioStreams genericclioptions.IOStreams) *cobra.Command {
-	o := NewOptions(ioStreams)
+func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "kubectl prune TYPE",
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				fmt.Fprintf(o.ErrOut, "arguments must be only resource type(s)\n")
-				return
-			}
-
+			cmdutil.CheckErr(o.Validate(args))
 			cmdutil.CheckErr(o.Complete(cmd))
 			cmdutil.CheckErr(o.Run(cmdutil.NewFactory(o.configFlags), args[0]))
 		},
@@ -104,6 +100,14 @@ func (o *Options) Complete(cmd *cobra.Command) (err error) {
 	}
 
 	return
+}
+
+func (o *Options) Validate(args []string) error {
+	if len(args) != 1 {
+		return errors.New("arguments must be only resource type(s)")
+	}
+
+	return nil
 }
 
 func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
@@ -155,7 +159,7 @@ func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
 
 		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
 			o.printObj(info.Object)
-			return nil
+			return nil // skip prune
 		}
 
 		_, err = resource.
