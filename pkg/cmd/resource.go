@@ -37,57 +37,45 @@ func listServiceAccounts(ctx context.Context, clientset *kubernetes.Clientset, n
 }
 
 func detectUsedConfigMaps(pods []*corev1.Pod) map[string]struct{} {
-	usedCms := make(map[string]struct{})
+	usedConfigMaps := make(map[string]struct{})
 
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.ConfigMapRef != nil {
-					usedCms[envFrom.ConfigMapRef.Name] = struct{}{}
+					usedConfigMaps[envFrom.ConfigMapRef.Name] = struct{}{}
 				}
 			}
 
 			for _, env := range container.Env {
 				if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil {
-					usedCms[env.ValueFrom.ConfigMapKeyRef.Name] = struct{}{}
+					usedConfigMaps[env.ValueFrom.ConfigMapKeyRef.Name] = struct{}{}
 				}
 			}
 		}
 
 		for _, volume := range pod.Spec.Volumes {
 			if volume.ConfigMap != nil {
-				usedCms[volume.ConfigMap.Name] = struct{}{}
+				usedConfigMaps[volume.ConfigMap.Name] = struct{}{}
 			}
 
 			if volume.Projected != nil {
 				for _, source := range volume.Projected.Sources {
 					if source.ConfigMap != nil {
-						usedCms[source.ConfigMap.Name] = struct{}{}
+						usedConfigMaps[source.ConfigMap.Name] = struct{}{}
 					}
 				}
 			}
 		}
 	}
 
-	return usedCms
+	return usedConfigMaps
 }
 
 func detectUsedSecrets(pods []*corev1.Pod, sas []*corev1.ServiceAccount) map[string]struct{} {
 	usedSecrets := make(map[string]struct{})
 
-	for name := range detectUsedSecretsInPods(pods) {
-		usedSecrets[name] = struct{}{}
-	}
-	for name := range detectUsedSecretsInServiceAccounts(sas) {
-		usedSecrets[name] = struct{}{}
-	}
-
-	return usedSecrets
-}
-
-func detectUsedSecretsInPods(pods []*corev1.Pod) map[string]struct{} {
-	usedSecrets := make(map[string]struct{})
-
+	// Add Secrets used in Pods
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
@@ -118,12 +106,7 @@ func detectUsedSecretsInPods(pods []*corev1.Pod) map[string]struct{} {
 		}
 	}
 
-	return usedSecrets
-}
-
-func detectUsedSecretsInServiceAccounts(sas []*corev1.ServiceAccount) map[string]struct{} {
-	usedSecrets := make(map[string]struct{})
-
+	// Add Secrets used in ServiceAccounts
 	for _, sa := range sas {
 		for _, secret := range sa.Secrets {
 			usedSecrets[secret.Name] = struct{}{}
