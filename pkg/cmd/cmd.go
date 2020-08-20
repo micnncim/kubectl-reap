@@ -26,8 +26,8 @@ const (
   # Delete ConfigMaps not mounted on any Pods and across all namespace
   $ kubectl prune cm --all-namespaces
 
-  # Delete Pods not managed by any ReplicaSets and ReplicaSets not managed by any Deployments
-  $ kubectl prune po,rs`
+  # Delete Pods whose status is not Running as client-side dry-run
+  $ kubectl prune po --dry-run=client`
 )
 
 type Options struct {

@@ -6,12 +6,11 @@
 
 Supported resources:
 
-- [x] ConfigMap
-- [x] Secret
-- [x] Pod
-- [x] ReplicaSet
-- [ ] PodDisruptionBudget
-- [ ] HorizontalPodAutoscaler
+- [x] ConfigMaps (not used in any Pods)
+- [x] Secrets (not used in any Pods or ServiceAccounts)
+- [x] Pods (whose status is not `Running`)
+- [ ] PodDisruptionBudgets
+- [ ] HorizontalPodAutoscalers
 
 ## Installation
 
