@@ -18,10 +18,8 @@ const (
 
 // determiner determines whether a resource should be pruned.
 type determiner struct {
-	// key=ConfigMap.Name
-	usedConfigMaps map[string]struct{}
-	// key=Secret.Name
-	usedSecrets map[string]struct{}
+	usedConfigMaps map[string]struct{} // key=ConfigMap.Name
+	usedSecrets    map[string]struct{} // key=Secret.Name
 
 	pods []*corev1.Pod
 }

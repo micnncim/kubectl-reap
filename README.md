@@ -80,8 +80,8 @@ Examples:
   # Delete ConfigMaps not mounted on any Pods and in the current namespace and context
   $ kubectl prune configmaps
 
-  # Delete Secrets not mounted on any Pods and in the namespace/my-namespace and context/my-context
-  $ kubectl prune secret -n my-namespace --context my-context
+  # Delete unused ConfigMaps and Secrets in the namespace/my-namespace and context/my-context
+  $ kubectl prune cm,secret -n my-namespace --context my-context
 
   # Delete ConfigMaps not mounted on any Pods and across all namespace
   $ kubectl prune cm --all-namespaces
@@ -116,7 +116,7 @@ Flags:
 
 ```
 
-When you use `--all-namespaces`, `kubectl-prune` prunes resources across all namespace except `kube-system` so that it prevents unexpected resource deletion.
+Note: When you use `--all-namespaces`, `kubectl-prune` prunes resources across all namespace except `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
 
