@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -21,34 +20,6 @@ func listPods(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 	}
 
 	return pods, nil
-}
-
-func listReplicaSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]*appsv1.ReplicaSet, error) {
-	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	rss := make([]*appsv1.ReplicaSet, 0, len(rsList.Items))
-	for i := range rsList.Items {
-		rss = append(rss, &rsList.Items[i])
-	}
-
-	return rss, nil
-}
-
-func listDeployments(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]*appsv1.Deployment, error) {
-	deployList, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	deploys := make([]*appsv1.Deployment, 0, len(deployList.Items))
-	for i := range deployList.Items {
-		deploys = append(deploys, &deployList.Items[i])
-	}
-
-	return deploys, nil
 }
 
 func listServiceAccounts(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]*corev1.ServiceAccount, error) {

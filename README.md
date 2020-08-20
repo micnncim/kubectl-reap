@@ -6,12 +6,11 @@
 
 Supported resources:
 
-- [x] ConfigMap
-- [x] Secret
-- [x] Pod
-- [x] ReplicaSet
-- [ ] PodDisruptionBudget
-- [ ] HorizontalPodAutoscaler
+- [x] ConfigMaps (not used in any Pods)
+- [x] Secrets (not used in any Pods or ServiceAccounts)
+- [x] Pods (whose status is not `Running`)
+- [ ] PodDisruptionBudgets
+- [ ] HorizontalPodAutoscalers
 
 ## Installation
 
@@ -87,11 +86,11 @@ Examples:
   # Delete ConfigMaps not mounted on any Pods and across all namespace
   $ kubectl prune cm --all-namespaces
 
-  # Delete Pods not managed by any ReplicaSets and ReplicaSets not managed by any Deployments
-  $ kubectl prune po,rs
+  # Delete Pods whose status is not Running as client-side dry-run
+  $ kubectl prune po --dry-run=client
 
 Flags:
-  -A, --all-namespaces                 If true, prune the targeted resources across all namespace
+  -A, --all-namespaces                 If true, prune the targeted resources across all namespace except kube-system
       --allow-missing-template-keys    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats. (default true)
       --as string                      Username to impersonate for the operation
       --as-group stringArray           Group to impersonate for the operation, this flag can be repeated to specify multiple groups.
