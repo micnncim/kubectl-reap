@@ -59,17 +59,16 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 		}
 	}
 
-	if pruneConfigMaps || pruneSecrets {
-		if pruneConfigMaps {
-			d.usedConfigMaps = detectUsedConfigMaps(d.pods)
+	if pruneConfigMaps {
+		d.usedConfigMaps = detectUsedConfigMaps(d.pods)
+	}
+
+	if pruneSecrets {
+		sas, err := listServiceAccounts(ctx, clientset, namespace)
+		if err != nil {
+			return nil, err
 		}
-		if pruneSecrets {
-			sas, err := listServiceAccounts(ctx, clientset, namespace)
-			if err != nil {
-				return nil, err
-			}
-			d.usedSecrets = detectUsedSecrets(d.pods, sas)
-		}
+		d.usedSecrets = detectUsedSecrets(d.pods, sas)
 	}
 
 	return d, nil
@@ -89,11 +88,14 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 		}
 
 	case kindPod:
-		unstructured := info.Object.(runtime.Unstructured).UnstructuredContent()
 		var pod corev1.Pod
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, &pod); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+			info.Object.(runtime.Unstructured).UnstructuredContent(),
+			&pod,
+		); err != nil {
 			return false, err
 		}
+
 		if pod.Status.Phase != corev1.PodRunning {
 			return true, nil
 		}
