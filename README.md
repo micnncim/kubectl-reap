@@ -147,7 +147,7 @@ Note: When you use `--all-namespaces`, `kubectl-prune` prunes resources across a
 
 ## Background
 
-`kubectl apply --prune` allows us prune unused resources.
+`kubectl apply --prune` allows us to prune unused resources.
 However, it's not very flexible when we want to choose what kind resource to be deleted.
 `kubectl-prune` provides more flexible, easy way to prune resources.
 
