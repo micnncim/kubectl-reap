@@ -43,6 +43,9 @@ type Options struct {
 
 	printObj func(obj runtime.Object) error
 
+	determiner *determiner
+	result     *resource.Result
+
 	genericclioptions.IOStreams
 }
 
@@ -62,9 +65,11 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 		Use:     "kubectl prune TYPE",
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
+			f := cmdutil.NewFactory(o.configFlags)
+
 			cmdutil.CheckErr(o.Validate(args))
-			cmdutil.CheckErr(o.Complete(cmd))
-			cmdutil.CheckErr(o.Run(cmdutil.NewFactory(o.configFlags), args[0]))
+			cmdutil.CheckErr(o.Complete(f, args, cmd))
+			cmdutil.CheckErr(o.Run(f))
 		},
 	}
 
@@ -78,7 +83,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func (o *Options) Complete(cmd *cobra.Command) (err error) {
+func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command) (err error) {
 	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return
@@ -99,6 +104,38 @@ func (o *Options) Complete(cmd *cobra.Command) (err error) {
 		return printer.PrintObj(obj, o.Out)
 	}
 
+	clientset, err := f.KubernetesClientSet()
+	if err != nil {
+		return err
+	}
+
+	namespace := o.namespace
+	if o.allNamespaces {
+		namespace = metav1.NamespaceAll
+	}
+
+	o.result = f.
+		NewBuilder().
+		Unstructured().
+		ContinueOnError().
+		NamespaceParam(o.namespace).
+		DefaultNamespace().
+		AllNamespaces(o.allNamespaces).
+		ResourceTypeOrNameArgs(false, args[0]).
+		RequestChunksOf(o.chunkSize).
+		SelectAllParam(true).
+		Flatten().
+		Do()
+
+	if err = o.result.Err(); err != nil {
+		return err
+	}
+
+	o.determiner, err = newDeterminer(clientset, o.result, namespace)
+	if err != nil {
+		return err
+	}
+
 	return
 }
 
@@ -110,46 +147,13 @@ func (o *Options) Validate(args []string) error {
 	return nil
 }
 
-func (o *Options) Run(f cmdutil.Factory, resourceTypes string) error {
-	r := resource.
-		NewBuilder(o.configFlags).
-		Unstructured().
-		ContinueOnError().
-		NamespaceParam(o.namespace).
-		DefaultNamespace().
-		AllNamespaces(o.allNamespaces).
-		ResourceTypeOrNameArgs(false, resourceTypes).
-		RequestChunksOf(o.chunkSize).
-		SelectAllParam(true).
-		Flatten().
-		Do()
-
-	err := r.Err()
-	if err != nil {
-		return err
-	}
-
-	clientset, err := f.KubernetesClientSet()
-	if err != nil {
-		return err
-	}
-
-	namespace := o.namespace
-	if o.allNamespaces {
-		namespace = metav1.NamespaceAll
-	}
-
-	determiner, err := newDeterminer(clientset, r, namespace)
-	if err != nil {
-		return err
-	}
-
-	if err := r.Visit(func(info *resource.Info, err error) error {
+func (o *Options) Run(f cmdutil.Factory) error {
+	if err := o.result.Visit(func(info *resource.Info, err error) error {
 		if info.Namespace == metav1.NamespaceSystem {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		prune, err := determiner.determinePrune(info)
+		prune, err := o.determiner.determinePrune(info)
 		if err != nil {
 			return err
 		}
