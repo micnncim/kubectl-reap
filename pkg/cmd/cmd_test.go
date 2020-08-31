@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -16,6 +17,8 @@ import (
 )
 
 func TestOptions_Run(t *testing.T) {
+	const testNamespace = "test"
+
 	testPods, _, _ := cmdtesting.TestData()
 	testPods.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
 	testPods.Items[1].Status.Phase = corev1.PodRunning // name="bar"
@@ -58,7 +61,7 @@ func TestOptions_Run(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			f := cmdtesting.NewTestFactory().WithNamespace("test")
+			f := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
 			defer f.Cleanup()
 
 			codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
@@ -67,14 +70,14 @@ func TestOptions_Run(t *testing.T) {
 				NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
 				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 					switch p, m := req.URL.Path, req.Method; {
-					case p == "/namespaces/test/pods" && m == http.MethodGet:
+					case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
 						return &http.Response{
 							StatusCode: http.StatusOK,
 							Header:     cmdtesting.DefaultHeader(),
 							Body:       cmdtesting.ObjBody(codec, testPods),
 						}, nil
 
-					case p == "/namespaces/test/pods/foo" && m == http.MethodDelete:
+					case p == fmt.Sprintf("/namespaces/%s/pods/foo", testNamespace) && m == http.MethodDelete:
 						return &http.Response{
 							StatusCode: http.StatusOK,
 							Header:     cmdtesting.DefaultHeader(),
@@ -93,7 +96,7 @@ func TestOptions_Run(t *testing.T) {
 
 			o := &Options{
 				printFlags:     genericclioptions.NewPrintFlags("deleted").WithTypeSetter(scheme.Scheme),
-				namespace:      "test",
+				namespace:      testNamespace,
 				chunkSize:      10,
 				dryRunStrategy: tt.fields.dryRunStrategy,
 				IOStreams:      streams,
