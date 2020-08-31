@@ -14,12 +14,7 @@ func listPods(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 		return nil, err
 	}
 
-	pods := make([]*corev1.Pod, 0, len(podList.Items))
-	for i := range podList.Items {
-		pods = append(pods, &podList.Items[i])
-	}
-
-	return pods, nil
+	return podListToPods(podList), nil
 }
 
 func listServiceAccounts(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]*corev1.ServiceAccount, error) {
@@ -34,4 +29,12 @@ func listServiceAccounts(ctx context.Context, clientset *kubernetes.Clientset, n
 	}
 
 	return sas, nil
+}
+
+func podListToPods(podList *corev1.PodList) []*corev1.Pod {
+	pods := make([]*corev1.Pod, 0, len(podList.Items))
+	for i := range podList.Items {
+		pods = append(pods, &podList.Items[i])
+	}
+	return pods
 }

@@ -19,9 +19,41 @@ import (
 func TestOptions_Run(t *testing.T) {
 	const testNamespace = "test"
 
-	testPods, _, _ := cmdtesting.TestData()
-	testPods.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
-	testPods.Items[1].Status.Phase = corev1.PodRunning // name="bar"
+	testPodList, _, _ := cmdtesting.TestData()
+	testPodList.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
+	testPodList.Items[1].Status.Phase = corev1.PodRunning // name="bar"
+	testPods := podListToPods(testPodList)
+
+	tf := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
+	defer tf.Cleanup()
+
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+
+	tf.UnstructuredClient = &fake.RESTClient{
+		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     cmdtesting.DefaultHeader(),
+					Body:       cmdtesting.ObjBody(codec, testPodList),
+				}, nil
+
+			case p == fmt.Sprintf("/namespaces/%s/pods/foo", testNamespace) && m == http.MethodDelete:
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     cmdtesting.DefaultHeader(),
+					Body:       cmdtesting.ObjBody(codec, &testPodList.Items[0]),
+				}, nil
+
+			default:
+				t.Errorf("unexpected request: %#v\n%#v", req.URL, req)
+			}
+
+			return nil, nil
+		}),
+	}
 
 	type fields struct {
 		printFlags     *genericclioptions.PrintFlags
@@ -41,16 +73,21 @@ func TestOptions_Run(t *testing.T) {
 			name: "delete pod that should be deleted",
 			fields: fields{
 				determiner: &determiner{
-					pods: func() []*corev1.Pod {
-						pods := make([]*corev1.Pod, 0, len(testPods.Items))
-						for i := range testPods.Items {
-							pods = append(pods, &testPods.Items[i])
-						}
-						return pods
-					}(),
+					pods: testPods,
 				},
 			},
 			wantOut: "pod/foo deleted\n",
+			wantErr: false,
+		},
+		{
+			name: "not delete pod that should be deleted when dry-run is set",
+			fields: fields{
+				determiner: &determiner{
+					pods: testPods,
+				},
+				dryRunStrategy: cmdutil.DryRunClient,
+			},
+			wantOut: "pod/foo deleted (dry run)\n",
 			wantErr: false,
 		},
 	}
@@ -59,39 +96,6 @@ func TestOptions_Run(t *testing.T) {
 		tt := tt
 
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			f := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
-			defer f.Cleanup()
-
-			codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
-
-			f.UnstructuredClient = &fake.RESTClient{
-				NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
-				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
-					switch p, m := req.URL.Path, req.Method; {
-					case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
-						return &http.Response{
-							StatusCode: http.StatusOK,
-							Header:     cmdtesting.DefaultHeader(),
-							Body:       cmdtesting.ObjBody(codec, testPods),
-						}, nil
-
-					case p == fmt.Sprintf("/namespaces/%s/pods/foo", testNamespace) && m == http.MethodDelete:
-						return &http.Response{
-							StatusCode: http.StatusOK,
-							Header:     cmdtesting.DefaultHeader(),
-							Body:       cmdtesting.ObjBody(codec, &testPods.Items[0]),
-						}, nil
-
-					default:
-						t.Errorf("unexpected request: %#v\n%#v", req.URL, req)
-					}
-
-					return nil, nil
-				}),
-			}
-
 			streams, _, out, _ := genericclioptions.NewTestIOStreams()
 
 			o := &Options{
@@ -112,7 +116,7 @@ func TestOptions_Run(t *testing.T) {
 				return printer.PrintObj(obj, o.Out)
 			}
 
-			o.result = f.
+			o.result = tf.
 				NewBuilder().
 				Unstructured().
 				ContinueOnError().
@@ -130,7 +134,7 @@ func TestOptions_Run(t *testing.T) {
 				return
 			}
 
-			if err := o.Run(f); (err != nil) != tt.wantErr {
+			if err := o.Run(tf); (err != nil) != tt.wantErr {
 				t.Errorf("Options.Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
