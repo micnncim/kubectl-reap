@@ -1,5 +1,9 @@
 builds:
 - main: ./cmd/kubectl-prune/main.go
+  ldflags: 
+    - -s -w
+    - -X github.com/micnncim/clown/pkg/version.Version={{.Tag}}
+    - -X github.com/micnncim/clown/pkg/version.Revision={{.ShortCommit}}
   goos:
   - linux
   - darwin
