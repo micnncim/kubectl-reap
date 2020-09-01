@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +14,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+
+	"github.com/micnncim/kubectl-prune/pkg/version"
 )
 
 const (
@@ -44,6 +47,8 @@ type Options struct {
 	dryRunStrategy cmdutil.DryRunStrategy
 	quiet          bool
 
+	showVersion bool
+
 	printObj func(obj runtime.Object) error
 
 	determiner *determiner
@@ -68,6 +73,11 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 		Use:     "kubectl prune TYPE",
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
+			if o.showVersion {
+				fmt.Fprintf(o.Out, "%s (%s)\n", version.Version, version.Revision)
+				return
+			}
+
 			f := cmdutil.NewFactory(o.configFlags)
 
 			cmdutil.CheckErr(o.Validate(args))
@@ -82,6 +92,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources across all namespace except kube-system")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
+	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of kubectl-prune")
 
 	return cmd
 }
@@ -154,7 +165,7 @@ func (o *Options) completeResources(f cmdutil.Factory, resourceTypes string) err
 }
 
 func (o *Options) Validate(args []string) error {
-	if len(args) != 1 {
+	if len(args) != 1 && !o.showVersion {
 		return errors.New("arguments must be only resource type(s)")
 	}
 
