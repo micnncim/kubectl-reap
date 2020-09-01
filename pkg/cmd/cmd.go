@@ -28,6 +28,9 @@ const (
 
   # Delete Pods whose status is not Running as client-side dry-run
   $ kubectl prune po --dry-run=client`
+
+	// printedOperationTypePrune is used when printer outputs the result of operations.
+	printedOperationTypePrune = "deleted"
 )
 
 type Options struct {
@@ -52,7 +55,7 @@ type Options struct {
 func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 	return &Options{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		printFlags:  genericclioptions.NewPrintFlags("deleted").WithTypeSetter(scheme.Scheme),
+		printFlags:  genericclioptions.NewPrintFlags(printedOperationTypePrune).WithTypeSetter(scheme.Scheme),
 		chunkSize:   500,
 		IOStreams:   ioStreams,
 	}
@@ -94,26 +97,46 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 		return
 	}
 
-	o.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(o.printFlags, o.dryRunStrategy)
-
-	printer, err := o.printFlags.ToPrinter()
-	if err != nil {
+	if err = o.completePrintObj(); err != nil {
 		return
 	}
-	o.printObj = func(obj runtime.Object) error {
-		return printer.PrintObj(obj, o.Out)
+
+	if err = o.completeResources(f, args[0]); err != nil {
+		return
 	}
 
 	clientset, err := f.KubernetesClientSet()
 	if err != nil {
-		return err
+		return
 	}
-
 	namespace := o.namespace
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
+	o.determiner, err = newDeterminer(clientset, o.result, namespace)
+	if err != nil {
+		return
+	}
 
+	return
+}
+
+func (o *Options) completePrintObj() error {
+	o.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(o.printFlags, o.dryRunStrategy)
+
+	printer, err := o.printFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
+	o.printObj = func(obj runtime.Object) error {
+		return printer.PrintObj(obj, o.Out)
+	}
+
+	return nil
+}
+
+func (o *Options) completeResources(f cmdutil.Factory, resourceTypes string) error {
 	o.result = f.
 		NewBuilder().
 		Unstructured().
@@ -121,22 +144,13 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 		NamespaceParam(o.namespace).
 		DefaultNamespace().
 		AllNamespaces(o.allNamespaces).
-		ResourceTypeOrNameArgs(false, args[0]).
+		ResourceTypeOrNameArgs(false, resourceTypes).
 		RequestChunksOf(o.chunkSize).
 		SelectAllParam(true).
 		Flatten().
 		Do()
 
-	if err = o.result.Err(); err != nil {
-		return err
-	}
-
-	o.determiner, err = newDeterminer(clientset, o.result, namespace)
-	if err != nil {
-		return err
-	}
-
-	return
+	return o.result.Err()
 }
 
 func (o *Options) Validate(args []string) error {

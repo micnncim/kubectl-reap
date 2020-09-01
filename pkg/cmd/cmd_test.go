@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
@@ -56,7 +55,6 @@ func TestOptions_Run(t *testing.T) {
 	}
 
 	type fields struct {
-		printFlags     *genericclioptions.PrintFlags
 		dryRunStrategy cmdutil.DryRunStrategy
 		determiner     *determiner
 		result         *resource.Result
@@ -80,7 +78,7 @@ func TestOptions_Run(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "not delete pod that should be deleted when dry-run is set",
+			name: "does not delete pod that should be deleted when dry-run is set",
 			fields: fields{
 				determiner: &determiner{
 					pods: testPods,
@@ -99,47 +97,30 @@ func TestOptions_Run(t *testing.T) {
 			streams, _, out, _ := genericclioptions.NewTestIOStreams()
 
 			o := &Options{
-				printFlags:     genericclioptions.NewPrintFlags("deleted").WithTypeSetter(scheme.Scheme),
+				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypePrune).WithTypeSetter(scheme.Scheme),
 				namespace:      testNamespace,
 				chunkSize:      10,
 				dryRunStrategy: tt.fields.dryRunStrategy,
 				IOStreams:      streams,
 			}
 
-			o.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(o.printFlags, o.dryRunStrategy)
-			printer, err := o.printFlags.ToPrinter()
-			if err != nil {
-				t.Errorf("failed to build printer: %v\n", err)
+			if err := o.completePrintObj(); err != nil {
+				t.Errorf("failed to complete printObj: %v\n", err)
 				return
 			}
-			o.printObj = func(obj runtime.Object) error {
-				return printer.PrintObj(obj, o.Out)
-			}
-
-			o.result = tf.
-				NewBuilder().
-				Unstructured().
-				ContinueOnError().
-				NamespaceParam(o.namespace).
-				DefaultNamespace().
-				AllNamespaces(o.allNamespaces).
-				ResourceTypeOrNameArgs(false, "pods").
-				RequestChunksOf(o.chunkSize).
-				SelectAllParam(true).
-				Flatten().
-				Do()
-
-			if err := o.result.Err(); err != nil {
-				t.Errorf("failed to fetch resources: %v\n", err)
+			if err := o.completeResources(tf, "pods"); err != nil {
+				t.Errorf("failed to complete resources: %v\n", err)
 				return
 			}
 
 			if err := o.Run(tf); (err != nil) != tt.wantErr {
 				t.Errorf("Options.Run() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 
 			if diff := cmp.Diff(tt.wantOut, out.String()); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
+				return
 			}
 		})
 	}
