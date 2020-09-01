@@ -1,0 +1,6 @@
+builds:
+- main: ./cmd/kubectl-prune/main.go
+  goos:
+  - linux
+  - darwin
+  - windows
