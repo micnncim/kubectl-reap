@@ -153,9 +153,13 @@ Note: When you use `--all-namespaces`, `kubectl-prune` prunes resources across a
 However, it's not very flexible when we want to choose what kind resource to be deleted.
 `kubectl-prune` provides more flexible, easy way to prune resources.
 
-## Related Projects
+## Similar Projects
+
+This project is inspired by `dtan4/k8s-unused-secret-detector` :cherry_blossom:
 
 - [dtan4/k8s-unused-secret-detector](https://github.com/dtan4/k8s-unused-secret-detector)
+- [FikaWorks/kubectl-plugins/prune-unused](https://github.com/FikaWorks/kubectl-plugins/tree/master/prune-unused)
+- [dirathea/kubectl-unused-volumes](https://github.com/dirathea/kubectl-unused-volumes)
 
 <!-- badge links -->
 
