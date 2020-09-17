@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
 )
@@ -100,11 +99,8 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 		}
 
 	case kindPod:
-		var pod corev1.Pod
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-			info.Object.(runtime.Unstructured).UnstructuredContent(),
-			&pod,
-		); err != nil {
+		pod, err := infoToPod(info)
+		if err != nil {
 			return false, err
 		}
 
