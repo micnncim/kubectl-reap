@@ -8,11 +8,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/scheme"
+
+	"github.com/micnncim/kubectl-prune/pkg/determiner"
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 func TestOptions_Run(t *testing.T) {
@@ -21,7 +24,7 @@ func TestOptions_Run(t *testing.T) {
 	testPodList, _, _ := cmdtesting.TestData()
 	testPodList.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
 	testPodList.Items[1].Status.Phase = corev1.PodRunning // name="bar"
-	testPods := podListToPods(testPodList)
+	testPods := resource.PodListToPods(testPodList)
 
 	tf := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
 	defer tf.Cleanup()
@@ -29,7 +32,7 @@ func TestOptions_Run(t *testing.T) {
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
-		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		NegotiatedSerializer: cliresource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
@@ -56,8 +59,8 @@ func TestOptions_Run(t *testing.T) {
 
 	type fields struct {
 		dryRunStrategy cmdutil.DryRunStrategy
-		determiner     *determiner
-		result         *resource.Result
+		determiner     *determiner.Determiner
+		result         *cliresource.Result
 		IOStreams      genericclioptions.IOStreams
 	}
 
@@ -70,8 +73,8 @@ func TestOptions_Run(t *testing.T) {
 		{
 			name: "delete pod that should be deleted",
 			fields: fields{
-				determiner: &determiner{
-					pods: testPods,
+				determiner: &determiner.Determiner{
+					Pods: testPods,
 				},
 			},
 			wantOut: "pod/foo deleted\n",
@@ -80,8 +83,8 @@ func TestOptions_Run(t *testing.T) {
 		{
 			name: "does not delete pod that should be deleted when dry-run is set",
 			fields: fields{
-				determiner: &determiner{
-					pods: testPods,
+				determiner: &determiner.Determiner{
+					Pods: testPods,
 				},
 				dryRunStrategy: cmdutil.DryRunClient,
 			},

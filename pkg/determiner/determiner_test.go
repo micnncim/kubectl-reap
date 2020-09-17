@@ -1,4 +1,4 @@
-package cmd
+package determiner
 
 import (
 	"testing"
@@ -205,14 +205,14 @@ func Test_determiner_determinePrune(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := &determiner{
-				usedConfigMaps:             tt.fields.usedConfigMaps,
-				usedSecrets:                tt.fields.usedSecrets,
-				usedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
-				pods:                       tt.fields.pods,
+			d := &Determiner{
+				UsedConfigMaps:             tt.fields.usedConfigMaps,
+				UsedSecrets:                tt.fields.usedSecrets,
+				UsedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
+				Pods:                       tt.fields.pods,
 			}
 
-			got, err := d.determinePrune(tt.args.info)
+			got, err := d.DeterminePrune(tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("determiner.determinePrune() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -359,8 +359,8 @@ func Test_determineUsedPodDisruptionBudget(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := &determiner{
-				pods: tt.fields.pods,
+			d := &Determiner{
+				Pods: tt.fields.pods,
 			}
 
 			got, err := d.determineUsedPodDisruptionBudget(tt.args.pdb)
