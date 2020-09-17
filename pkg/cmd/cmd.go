@@ -32,6 +32,16 @@ const (
   # Delete Pods whose status is not Running as client-side dry-run
   $ kubectl prune po --dry-run=client`
 
+	pruneShortDescription = `
+Delete unused resources. Supported resources:
+
+- ConfigMaps (not used in any Pods)
+- Secrets (not used in any Pods or ServiceAccounts)
+- Pods (whose status is not Running)
+- PersistentVolumeClaim (not used in any Pods)
+- PodDisruptionBudgets (not targeting any Pods)
+`
+
 	// printedOperationTypePrune is used when printer outputs the result of operations.
 	printedOperationTypePrune = "deleted"
 )
@@ -70,7 +80,8 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:     "kubectl prune TYPE",
+		Use:     "kubectl prune RESOURCE_TYPE",
+		Short:   pruneShortDescription,
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if o.showVersion {
