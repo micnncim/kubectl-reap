@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
 )
@@ -14,6 +17,7 @@ const (
 	kindSecret                = "Secret"
 	kindPod                   = "Pod"
 	kindPersistentVolumeClaim = "PersistentVolumeClaim"
+	kindPodDisruptionBudget   = "PodDisruptionBudget"
 )
 
 // determiner determines whether a resource should be pruned.
@@ -30,6 +34,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 		pruneConfigMaps             bool
 		pruneSecrets                bool
 		prunePersistentVolumeClaims bool
+		prunePodDisruptionBudgets   bool
 	)
 
 	if err := r.Visit(func(info *resource.Info, err error) error {
@@ -40,6 +45,8 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 			pruneSecrets = true
 		case kindPersistentVolumeClaim:
 			prunePersistentVolumeClaims = true
+		case kindPodDisruptionBudget:
+			prunePodDisruptionBudgets = true
 		}
 		return nil
 	}); err != nil {
@@ -50,7 +57,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 
 	ctx := context.Background()
 
-	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims {
+	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
 		var err error
 		d.pods, err = listPods(ctx, clientset, namespace)
 		if err != nil {
@@ -104,6 +111,18 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 		if pod.Status.Phase != corev1.PodRunning {
 			return true, nil
 		}
+
+	case kindPodDisruptionBudget:
+		pdb, err := infoToPodDisruptionBudget(info)
+		if err != nil {
+			return false, err
+		}
+
+		used, err := d.determineUsedPodDisruptionBudget(pdb)
+		if err != nil {
+			return false, err
+		}
+		return !used, nil
 
 	default:
 		return false, fmt.Errorf("unsupported kind: %s/%s", kind, info.Name)
@@ -205,4 +224,19 @@ func detectUsedPersistentVolumeClaims(pods []*corev1.Pod) map[string]struct{} {
 	}
 
 	return usedPersistentVolumeClaims
+}
+
+func (d *determiner) determineUsedPodDisruptionBudget(pdb *policyv1beta1.PodDisruptionBudget) (bool, error) {
+	selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
+	if err != nil {
+		return false, fmt.Errorf("invalid label selector (%s): %w", pdb.Name, err)
+	}
+
+	for _, pod := range d.pods {
+		if selector.Matches(labels.Set(pod.Labels)) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
