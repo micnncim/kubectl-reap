@@ -66,7 +66,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 	}
 
 	if pruneConfigMaps {
-		d.usedConfigMaps = detectUsedConfigMaps(d.pods)
+		d.usedConfigMaps = d.detectUsedConfigMaps()
 	}
 
 	if pruneSecrets {
@@ -74,11 +74,11 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 		if err != nil {
 			return nil, err
 		}
-		d.usedSecrets = detectUsedSecrets(d.pods, sas)
+		d.usedSecrets = d.detectUsedSecrets(sas)
 	}
 
 	if prunePersistentVolumeClaims {
-		d.usedPersistentVolumeClaims = detectUsedPersistentVolumeClaims(d.pods)
+		d.usedPersistentVolumeClaims = d.detectUsedPersistentVolumeClaims()
 	}
 
 	return d, nil
@@ -131,10 +131,10 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 	return false, nil
 }
 
-func detectUsedConfigMaps(pods []*corev1.Pod) map[string]struct{} {
+func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 	usedConfigMaps := make(map[string]struct{})
 
-	for _, pod := range pods {
+	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.ConfigMapRef != nil {
@@ -167,11 +167,11 @@ func detectUsedConfigMaps(pods []*corev1.Pod) map[string]struct{} {
 	return usedConfigMaps
 }
 
-func detectUsedSecrets(pods []*corev1.Pod, sas []*corev1.ServiceAccount) map[string]struct{} {
+func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]struct{} {
 	usedSecrets := make(map[string]struct{})
 
 	// Add Secrets used in Pods
-	for _, pod := range pods {
+	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.SecretRef != nil {
@@ -211,10 +211,10 @@ func detectUsedSecrets(pods []*corev1.Pod, sas []*corev1.ServiceAccount) map[str
 	return usedSecrets
 }
 
-func detectUsedPersistentVolumeClaims(pods []*corev1.Pod) map[string]struct{} {
+func (d *determiner) detectUsedPersistentVolumeClaims() map[string]struct{} {
 	usedPersistentVolumeClaims := make(map[string]struct{})
 
-	for _, pod := range pods {
+	for _, pod := range d.pods {
 		for _, volume := range pod.Spec.Volumes {
 			if volume.PersistentVolumeClaim == nil {
 				continue
