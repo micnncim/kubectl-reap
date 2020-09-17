@@ -9,21 +9,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 const (
-	kindConfigMap             = "ConfigMap"
-	kindSecret                = "Secret"
-	kindPod                   = "Pod"
-	kindPersistentVolumeClaim = "PersistentVolumeClaim"
-	kindPodDisruptionBudget   = "PodDisruptionBudget"
+	kindConfigMap               = "ConfigMap"
+	kindSecret                  = "Secret"
+	kindPod                     = "Pod"
+	kindPersistentVolumeClaim   = "PersistentVolumeClaim"
+	kindPodDisruptionBudget     = "PodDisruptionBudget"
+	kindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
 )
 
 // Determiner determines whether a resource should be pruned.
 type Determiner struct {
+	resourceClient resource.Client
+
 	UsedConfigMaps             map[string]struct{} // key=ConfigMap.Name
 	UsedSecrets                map[string]struct{} // key=Secret.Name
 	UsedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
@@ -31,7 +35,7 @@ type Determiner struct {
 	Pods []*corev1.Pod
 }
 
-func New(clientset *kubernetes.Clientset, r *cliresource.Result, namespace string) (*Determiner, error) {
+func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cliresource.Result, namespace string) (*Determiner, error) {
 	var (
 		pruneConfigMaps             bool
 		pruneSecrets                bool
@@ -55,14 +59,15 @@ func New(clientset *kubernetes.Clientset, r *cliresource.Result, namespace strin
 		return nil, err
 	}
 
-	d := &Determiner{}
-	client := resource.NewClient(clientset)
+	d := &Determiner{
+		resourceClient: resource.NewClient(clientset, dynamicClient),
+	}
 
 	ctx := context.Background()
 
 	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
 		var err error
-		d.Pods, err = client.ListPods(ctx, namespace)
+		d.Pods, err = d.resourceClient.ListPods(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +78,7 @@ func New(clientset *kubernetes.Clientset, r *cliresource.Result, namespace strin
 	}
 
 	if pruneSecrets {
-		sas, err := client.ListServiceAccounts(ctx, namespace)
+		sas, err := d.resourceClient.ListServiceAccounts(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +93,7 @@ func New(clientset *kubernetes.Clientset, r *cliresource.Result, namespace strin
 }
 
 // DeterminePrune determines whether a resource should be pruned.
-func (d *Determiner) DeterminePrune(info *cliresource.Info) (bool, error) {
+func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case kindConfigMap:
 		if _, ok := d.UsedConfigMaps[info.Name]; !ok {
@@ -126,6 +131,18 @@ func (d *Determiner) DeterminePrune(info *cliresource.Info) (bool, error) {
 			return false, err
 		}
 		return !used, nil
+
+	case kindHorizontalPodAutoscaler:
+		hpa, err := resource.InfoToHorizontalPodAutoscaler(info)
+		if err != nil {
+			return false, err
+		}
+
+		found, err := d.resourceClient.FindScaleTargetRefObject(ctx, &hpa.Spec.ScaleTargetRef, info.Namespace)
+		if err != nil {
+			return false, err
+		}
+		return !found, nil
 
 	default:
 		return false, fmt.Errorf("unsupported kind: %s/%s", kind, info.Name)
