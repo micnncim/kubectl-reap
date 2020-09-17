@@ -14,9 +14,13 @@ Supported resources:
 - [x] Pods (whose status is not `Running`)
 - [x] PersistentVolumeClaim (not used in any Pods)
 - [x] PodDisruptionBudgets (not targeting any Pods)
-- [ ] HorizontalPodAutoscalers
+- [x] HorizontalPodAutoscalers (not targeting any resources)
 
 ## Installation
+
+Download precompiled binaries from [GitHub Releases](https://github.com/micnncim/kubectl-prune/releases).
+
+If you want to build a binary from source:
 
 ```
 $ GO111MODULE=on go get github.com/micnncim/kubectl-prune/cmd/kubectl-prune
@@ -110,6 +114,7 @@ Delete unused resources. Supported resources:
 - Pods (whose status is not Running)
 - PersistentVolumeClaim (not used in any Pods)
 - PodDisruptionBudgets (not targeting any Pods)
+- HorizontalPodAutoscalers (not targeting any resources)
 
 Usage:
   kubectl prune RESOURCE_TYPE [flags]

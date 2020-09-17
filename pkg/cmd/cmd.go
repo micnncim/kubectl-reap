@@ -40,6 +40,7 @@ Delete unused resources. Supported resources:
 - Pods (whose status is not Running)
 - PersistentVolumeClaim (not used in any Pods)
 - PodDisruptionBudgets (not targeting any Pods)
+- HorizontalPodAutoscalers (not targeting any resources)
 `
 
 	// printedOperationTypePrune is used when printer outputs the result of operations.
