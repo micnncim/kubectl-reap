@@ -4,6 +4,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -51,4 +52,16 @@ func infoToPod(info *resource.Info) (*corev1.Pod, error) {
 	}
 
 	return &pod, nil
+}
+
+func infoToPodDisruptionBudget(info *resource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
+	var pdb policyv1beta1.PodDisruptionBudget
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		info.Object.(runtime.Unstructured).UnstructuredContent(),
+		&pdb,
+	); err != nil {
+		return nil, err
+	}
+
+	return &pdb, nil
 }
