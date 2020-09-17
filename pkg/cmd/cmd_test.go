@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -116,7 +117,7 @@ func TestOptions_Run(t *testing.T) {
 				return
 			}
 
-			if err := o.Run(tf); (err != nil) != tt.wantErr {
+			if err := o.Run(context.Background(), tf); (err != nil) != tt.wantErr {
 				t.Errorf("Options.Run() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}

@@ -1,6 +1,7 @@
 package determiner
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -212,7 +213,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				Pods:                       tt.fields.pods,
 			}
 
-			got, err := d.DeterminePrune(tt.args.info)
+			got, err := d.DeterminePrune(context.Background(), tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("determiner.determinePrune() error = %v, wantErr %v", err, tt.wantErr)
 				return

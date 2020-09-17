@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -8,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -39,6 +40,7 @@ Delete unused resources. Supported resources:
 - Pods (whose status is not Running)
 - PersistentVolumeClaim (not used in any Pods)
 - PodDisruptionBudgets (not targeting any Pods)
+- HorizontalPodAutoscalers (not targeting any resources)
 `
 
 	// printedOperationTypePrune is used when printer outputs the result of operations.
@@ -61,7 +63,7 @@ type Options struct {
 	printObj func(obj runtime.Object) error
 
 	determiner *determiner.Determiner
-	result     *resource.Result
+	result     *cliresource.Result
 
 	genericclioptions.IOStreams
 }
@@ -92,7 +94,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 
 			cmdutil.CheckErr(o.Validate(args))
 			cmdutil.CheckErr(o.Complete(f, args, cmd))
-			cmdutil.CheckErr(o.Run(f))
+			cmdutil.CheckErr(o.Run(context.Background(), f))
 		},
 	}
 
@@ -130,11 +132,17 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	if err != nil {
 		return
 	}
+	dynamicClient, err := f.DynamicClient()
+	if err != nil {
+		return
+	}
+
 	namespace := o.namespace
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
-	o.determiner, err = determiner.New(clientset, o.result, namespace)
+
+	o.determiner, err = determiner.New(clientset, dynamicClient, o.result, namespace)
 	if err != nil {
 		return
 	}
@@ -182,13 +190,13 @@ func (o *Options) Validate(args []string) error {
 	return nil
 }
 
-func (o *Options) Run(f cmdutil.Factory) error {
-	if err := o.result.Visit(func(info *resource.Info, err error) error {
+func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
+	if err := o.result.Visit(func(info *cliresource.Info, err error) error {
 		if info.Namespace == metav1.NamespaceSystem {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		prune, err := o.determiner.DeterminePrune(info)
+		prune, err := o.determiner.DeterminePrune(ctx, info)
 		if err != nil {
 			return err
 		}
@@ -201,7 +209,7 @@ func (o *Options) Run(f cmdutil.Factory) error {
 			return nil // skip prune
 		}
 
-		_, err = resource.
+		_, err = cliresource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
 			DeleteWithOptions(info.Namespace, info.Name, &metav1.DeleteOptions{})
