@@ -7,7 +7,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -52,7 +52,7 @@ func (c *client) ListServiceAccounts(ctx context.Context, namespace string) ([]*
 	return sas, nil
 }
 
-func InfoToPod(info *resource.Info) (*corev1.Pod, error) {
+func InfoToPod(info *cliresource.Info) (*corev1.Pod, error) {
 	var pod corev1.Pod
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		info.Object.(runtime.Unstructured).UnstructuredContent(),
@@ -64,7 +64,7 @@ func InfoToPod(info *resource.Info) (*corev1.Pod, error) {
 	return &pod, nil
 }
 
-func InfoToPodDisruptionBudget(info *resource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
+func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
 	var pdb policyv1beta1.PodDisruptionBudget
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		info.Object.(runtime.Unstructured).UnstructuredContent(),
