@@ -12,6 +12,7 @@ Supported resources:
 - [x] ConfigMaps (not used in any Pods)
 - [x] Secrets (not used in any Pods or ServiceAccounts)
 - [x] Pods (whose status is not `Running`)
+- [x] PersistentVolumeClaim (not used in any Pods)
 - [ ] PodDisruptionBudgets
 - [ ] HorizontalPodAutoscalers
 

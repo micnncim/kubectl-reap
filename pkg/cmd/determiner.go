@@ -5,30 +5,31 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
-	kindConfigMap = "ConfigMap"
-	kindSecret    = "Secret"
-	kindPod       = "Pod"
+	kindConfigMap             = "ConfigMap"
+	kindSecret                = "Secret"
+	kindPod                   = "Pod"
+	kindPersistentVolumeClaim = "PersistentVolumeClaim"
 )
 
 // determiner determines whether a resource should be pruned.
 type determiner struct {
-	usedConfigMaps map[string]struct{} // key=ConfigMap.Name
-	usedSecrets    map[string]struct{} // key=Secret.Name
+	usedConfigMaps             map[string]struct{} // key=ConfigMap.Name
+	usedSecrets                map[string]struct{} // key=Secret.Name
+	usedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
 
 	pods []*corev1.Pod
 }
 
 func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespace string) (*determiner, error) {
 	var (
-		pruneConfigMaps bool
-		pruneSecrets    bool
-		prunePods       bool
+		pruneConfigMaps             bool
+		pruneSecrets                bool
+		prunePersistentVolumeClaims bool
 	)
 
 	if err := r.Visit(func(info *resource.Info, err error) error {
@@ -37,8 +38,8 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 			pruneConfigMaps = true
 		case kindSecret:
 			pruneSecrets = true
-		case kindPod:
-			prunePods = true
+		case kindPersistentVolumeClaim:
+			prunePersistentVolumeClaims = true
 		}
 		return nil
 	}); err != nil {
@@ -49,7 +50,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 
 	ctx := context.Background()
 
-	if pruneConfigMaps || pruneSecrets || prunePods {
+	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims {
 		var err error
 		d.pods, err = listPods(ctx, clientset, namespace)
 		if err != nil {
@@ -69,6 +70,10 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 		d.usedSecrets = detectUsedSecrets(d.pods, sas)
 	}
 
+	if prunePersistentVolumeClaims {
+		d.usedPersistentVolumeClaims = detectUsedPersistentVolumeClaims(d.pods)
+	}
+
 	return d, nil
 }
 
@@ -85,12 +90,14 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 			return true, nil
 		}
 
+	case kindPersistentVolumeClaim:
+		if _, ok := d.usedPersistentVolumeClaims[info.Name]; !ok {
+			return true, nil
+		}
+
 	case kindPod:
-		var pod corev1.Pod
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-			info.Object.(runtime.Unstructured).UnstructuredContent(),
-			&pod,
-		); err != nil {
+		pod, err := infoToPod(info)
+		if err != nil {
 			return false, err
 		}
 
@@ -183,4 +190,19 @@ func detectUsedSecrets(pods []*corev1.Pod, sas []*corev1.ServiceAccount) map[str
 	}
 
 	return usedSecrets
+}
+
+func detectUsedPersistentVolumeClaims(pods []*corev1.Pod) map[string]struct{} {
+	usedPersistentVolumeClaims := make(map[string]struct{})
+
+	for _, pod := range pods {
+		for _, volume := range pod.Spec.Volumes {
+			if volume.PersistentVolumeClaim == nil {
+				continue
+			}
+			usedPersistentVolumeClaims[volume.PersistentVolumeClaim.ClaimName] = struct{}{}
+		}
+	}
+
+	return usedPersistentVolumeClaims
 }

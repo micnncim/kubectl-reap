@@ -9,10 +9,17 @@ import (
 )
 
 func Test_determiner_determinePrune(t *testing.T) {
+	const (
+		fakeConfigMap             = "fake-cm"
+		fakeSecret                = "fake-secret"
+		fakePersistentVolumeClaim = "fake-pvc"
+	)
+
 	type fields struct {
-		usedConfigMaps map[string]struct{}
-		usedSecrets    map[string]struct{}
-		pods           []*corev1.Pod
+		usedConfigMaps        map[string]struct{}
+		usedSecrets           map[string]struct{}
+		usedPersistentVolumes map[string]struct{}
+		pods                  []*corev1.Pod
 	}
 	type args struct {
 		info *resource.Info
@@ -29,7 +36,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 			name: "configmap should be pruned when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
-					"fake-cm": {},
+					fakeConfigMap: {},
 				},
 				pods: []*corev1.Pod{
 					{
@@ -40,7 +47,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 										{
 											ConfigMapRef: &corev1.ConfigMapEnvSource{
 												LocalObjectReference: corev1.LocalObjectReference{
-													Name: "fake-cm",
+													Name: fakeConfigMap,
 												},
 											},
 										},
@@ -58,7 +65,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 							Kind: kindConfigMap,
 						},
 					},
-					Name: "fake-cm",
+					Name: fakeConfigMap,
 				},
 			},
 			want:    false,
@@ -73,7 +80,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 							Kind: kindConfigMap,
 						},
 					},
-					Name: "fake-cm",
+					Name: fakeConfigMap,
 				},
 			},
 			want:    true,
@@ -83,7 +90,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 			name: "secret should be pruned when it is used",
 			fields: fields{
 				usedSecrets: map[string]struct{}{
-					"fake-secret": {},
+					fakeSecret: {},
 				},
 				pods: []*corev1.Pod{
 					{
@@ -94,7 +101,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 										{
 											SecretRef: &corev1.SecretEnvSource{
 												LocalObjectReference: corev1.LocalObjectReference{
-													Name: "fake-secret",
+													Name: fakeSecret,
 												},
 											},
 										},
@@ -112,7 +119,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 							Kind: kindSecret,
 						},
 					},
-					Name: "fake-secret",
+					Name: fakeSecret,
 				},
 			},
 			want:    false,
@@ -127,7 +134,57 @@ func Test_determiner_determinePrune(t *testing.T) {
 							Kind: kindSecret,
 						},
 					},
-					Name: "fake-secret",
+					Name: fakeSecret,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "pvc should be pruned when it is used",
+			fields: fields{
+				usedPersistentVolumes: map[string]struct{}{
+					fakePersistentVolumeClaim: {},
+				},
+				pods: []*corev1.Pod{
+					{
+						Spec: corev1.PodSpec{
+							Volumes: []corev1.Volume{
+								{
+									VolumeSource: corev1.VolumeSource{
+										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+											ClaimName: fakePersistentVolumeClaim,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				info: &resource.Info{
+					Object: &corev1.PersistentVolume{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPersistentVolumeClaim,
+						},
+					},
+					Name: fakePersistentVolumeClaim,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "pvc should not be pruned when it is not used",
+			args: args{
+				info: &resource.Info{
+					Object: &corev1.PersistentVolume{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPersistentVolumeClaim,
+						},
+					},
+					Name: fakePersistentVolumeClaim,
 				},
 			},
 			want:    true,
@@ -142,9 +199,10 @@ func Test_determiner_determinePrune(t *testing.T) {
 			t.Parallel()
 
 			d := &determiner{
-				usedConfigMaps: tt.fields.usedConfigMaps,
-				usedSecrets:    tt.fields.usedSecrets,
-				pods:           tt.fields.pods,
+				usedConfigMaps:             tt.fields.usedConfigMaps,
+				usedSecrets:                tt.fields.usedSecrets,
+				usedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
+				pods:                       tt.fields.pods,
 			}
 
 			got, err := d.determinePrune(tt.args.info)
