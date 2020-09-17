@@ -29,7 +29,6 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 	var (
 		pruneConfigMaps             bool
 		pruneSecrets                bool
-		prunePods                   bool
 		prunePersistentVolumeClaims bool
 	)
 
@@ -39,8 +38,6 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 			pruneConfigMaps = true
 		case kindSecret:
 			pruneSecrets = true
-		case kindPod:
-			prunePods = true
 		case kindPersistentVolumeClaim:
 			prunePersistentVolumeClaims = true
 		}
@@ -53,7 +50,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 
 	ctx := context.Background()
 
-	if pruneConfigMaps || pruneSecrets || prunePods || prunePersistentVolumeClaims {
+	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims {
 		var err error
 		d.pods, err = listPods(ctx, clientset, namespace)
 		if err != nil {
