@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -21,7 +22,7 @@ func TestOptions_Run(t *testing.T) {
 	testPodList, _, _ := cmdtesting.TestData()
 	testPodList.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
 	testPodList.Items[1].Status.Phase = corev1.PodRunning // name="bar"
-	testPods := podListToPods(testPodList)
+	testPods := resource.PodListToPods(testPodList)
 
 	tf := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
 	defer tf.Cleanup()
@@ -29,7 +30,7 @@ func TestOptions_Run(t *testing.T) {
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
-		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		NegotiatedSerializer: cliresource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
@@ -57,7 +58,7 @@ func TestOptions_Run(t *testing.T) {
 	type fields struct {
 		dryRunStrategy cmdutil.DryRunStrategy
 		determiner     *determiner
-		result         *resource.Result
+		result         *cliresource.Result
 		IOStreams      genericclioptions.IOStreams
 	}
 

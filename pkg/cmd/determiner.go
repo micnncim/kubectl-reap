@@ -8,8 +8,10 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 const (
@@ -29,7 +31,7 @@ type determiner struct {
 	pods []*corev1.Pod
 }
 
-func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespace string) (*determiner, error) {
+func newDeterminer(clientset *kubernetes.Clientset, r *cliresource.Result, namespace string) (*determiner, error) {
 	var (
 		pruneConfigMaps             bool
 		pruneSecrets                bool
@@ -37,7 +39,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 		prunePodDisruptionBudgets   bool
 	)
 
-	if err := r.Visit(func(info *resource.Info, err error) error {
+	if err := r.Visit(func(info *cliresource.Info, err error) error {
 		switch info.Object.GetObjectKind().GroupVersionKind().Kind {
 		case kindConfigMap:
 			pruneConfigMaps = true
@@ -54,12 +56,13 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 	}
 
 	d := &determiner{}
+	client := resource.NewClient(clientset)
 
 	ctx := context.Background()
 
 	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
 		var err error
-		d.pods, err = listPods(ctx, clientset, namespace)
+		d.pods, err = client.ListPods(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +73,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 	}
 
 	if pruneSecrets {
-		sas, err := listServiceAccounts(ctx, clientset, namespace)
+		sas, err := client.ListServiceAccounts(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +88,7 @@ func newDeterminer(clientset *kubernetes.Clientset, r *resource.Result, namespac
 }
 
 // determinePrune determines whether a resource should be pruned.
-func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
+func (d *determiner) determinePrune(info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case kindConfigMap:
 		if _, ok := d.usedConfigMaps[info.Name]; !ok {
@@ -103,7 +106,7 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 		}
 
 	case kindPod:
-		pod, err := infoToPod(info)
+		pod, err := resource.InfoToPod(info)
 		if err != nil {
 			return false, err
 		}
@@ -113,7 +116,7 @@ func (d *determiner) determinePrune(info *resource.Info) (bool, error) {
 		}
 
 	case kindPodDisruptionBudget:
-		pdb, err := infoToPodDisruptionBudget(info)
+		pdb, err := resource.InfoToPodDisruptionBudget(info)
 		if err != nil {
 			return false, err
 		}
