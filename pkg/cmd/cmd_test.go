@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/micnncim/kubectl-prune/pkg/resource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
@@ -14,6 +13,9 @@ import (
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/scheme"
+
+	"github.com/micnncim/kubectl-prune/pkg/determiner"
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 func TestOptions_Run(t *testing.T) {
@@ -57,7 +59,7 @@ func TestOptions_Run(t *testing.T) {
 
 	type fields struct {
 		dryRunStrategy cmdutil.DryRunStrategy
-		determiner     *determiner
+		determiner     *determiner.Determiner
 		result         *cliresource.Result
 		IOStreams      genericclioptions.IOStreams
 	}
@@ -71,8 +73,8 @@ func TestOptions_Run(t *testing.T) {
 		{
 			name: "delete pod that should be deleted",
 			fields: fields{
-				determiner: &determiner{
-					pods: testPods,
+				determiner: &determiner.Determiner{
+					Pods: testPods,
 				},
 			},
 			wantOut: "pod/foo deleted\n",
@@ -81,8 +83,8 @@ func TestOptions_Run(t *testing.T) {
 		{
 			name: "does not delete pod that should be deleted when dry-run is set",
 			fields: fields{
-				determiner: &determiner{
-					pods: testPods,
+				determiner: &determiner.Determiner{
+					Pods: testPods,
 				},
 				dryRunStrategy: cmdutil.DryRunClient,
 			},

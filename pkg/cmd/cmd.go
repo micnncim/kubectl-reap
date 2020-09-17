@@ -13,6 +13,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
+	"github.com/micnncim/kubectl-prune/pkg/determiner"
 	"github.com/micnncim/kubectl-prune/pkg/version"
 )
 
@@ -59,7 +60,7 @@ type Options struct {
 
 	printObj func(obj runtime.Object) error
 
-	determiner *determiner
+	determiner *determiner.Determiner
 	result     *resource.Result
 
 	genericclioptions.IOStreams
@@ -133,7 +134,7 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
-	o.determiner, err = newDeterminer(clientset, o.result, namespace)
+	o.determiner, err = determiner.New(clientset, o.result, namespace)
 	if err != nil {
 		return
 	}
@@ -187,7 +188,7 @@ func (o *Options) Run(f cmdutil.Factory) error {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		prune, err := o.determiner.determinePrune(info)
+		prune, err := o.determiner.DeterminePrune(info)
 		if err != nil {
 			return err
 		}
