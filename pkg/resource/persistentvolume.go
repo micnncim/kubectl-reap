@@ -17,10 +17,7 @@ limitations under the License.
 package resource
 
 import (
-	"log"
-
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -30,22 +27,18 @@ const (
 // CheckVolumeSatisfyClaim checks if the volume requested by the claim satisfies the requirements of the claim.
 func CheckVolumeSatisfyClaim(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
 	if !checkCapacitySatisfyRequest(volume, claim) {
-		log.Println("requested PV is too small")
 		return false
 	}
 
 	if !checkStorageClassMatch(volume, claim) {
-		log.Println("storageClassName does not match")
 		return false
 	}
 
 	if !checkVolumeModeMatch(volume, claim) {
-		log.Println("incompatible volumeMode")
 		return false
 	}
 
 	if !checkAccessModesMatch(volume, claim) {
-		log.Println("incompatible accessMode")
 		return false
 	}
 
@@ -87,7 +80,7 @@ func checkStorageClassMatch(volume *corev1.PersistentVolume, claim *corev1.Persi
 }
 
 // checkVolumeModeMatch returns true if PV satisfies the PVC's requested VolumeMode.
-func checkVolumeModeMatch(volume *v1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
+func checkVolumeModeMatch(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
 	// In HA upgrades, we cannot guarantee that the apiserver is on a version >= controller-manager.
 	// So we default a nil volumeMode to filesystem
 	requestedVolumeMode := corev1.PersistentVolumeFilesystem
@@ -104,7 +97,7 @@ func checkVolumeModeMatch(volume *v1.PersistentVolume, claim *corev1.PersistentV
 }
 
 // checkAccessModesMatch returns true if PV satisfies all the PVC's requested AccessModes.
-func checkAccessModesMatch(volume *v1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
+func checkAccessModesMatch(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
 	pvAccessModes := make(map[corev1.PersistentVolumeAccessMode]struct{})
 	for _, mode := range volume.Spec.AccessModes {
 		pvAccessModes[mode] = struct{}{}
