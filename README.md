@@ -121,7 +121,6 @@ configmap/test-cm-3 deleted
 ```console
 $ kubectl prune --help
 
-
 Delete unused resources. Supported resources:
 
 - ConfigMaps (not used in any Pods)
@@ -180,7 +179,7 @@ Flags:
 
 ### Caveat
 
-- It's recommended to run this plugin as dry-run (`client` or `server`) or interactive mode before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
+- It's recommended to run this plugin as dry-run (`--dry-run=client` or `--dry-run=server`) or interactive mode (`--interactive`) before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
 - Even if you use `--namespace kube-system` or `--all-namespaces`, this plugin never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
