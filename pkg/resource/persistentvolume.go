@@ -20,10 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	storageObjectInUseProtection = "StorageObjectInUseProtection"
-)
-
 // CheckVolumeSatisfyClaim checks if the volume requested by the claim satisfies the requirements of the claim.
 func CheckVolumeSatisfyClaim(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
 	if !checkCapacitySatisfyRequest(volume, claim) {
