@@ -20,6 +20,7 @@ import (
 type Client interface {
 	ListPods(ctx context.Context, namespace string) ([]*corev1.Pod, error)
 	ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error)
+	ListPersistentVolumeClaims(ctx context.Context, namespace string) ([]*corev1.PersistentVolumeClaim, error)
 	FindScaleTargetRefObject(ctx context.Context, objectRef *autoscalingv1.CrossVersionObjectReference, namespace string) (bool, error)
 }
 
@@ -59,6 +60,20 @@ func (c *client) ListServiceAccounts(ctx context.Context, namespace string) ([]*
 	}
 
 	return sas, nil
+}
+
+func (c *client) ListPersistentVolumeClaims(ctx context.Context, namespace string) ([]*corev1.PersistentVolumeClaim, error) {
+	pvcList, err := c.clientset.CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	pvcs := make([]*corev1.PersistentVolumeClaim, 0, len(pvcList.Items))
+	for i := range pvcList.Items {
+		pvcs = append(pvcs, &pvcList.Items[i])
+	}
+
+	return pvcs, nil
 }
 
 func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autoscalingv1.CrossVersionObjectReference, namespace string) (bool, error) {
