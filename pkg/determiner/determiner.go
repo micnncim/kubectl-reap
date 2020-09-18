@@ -9,8 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
@@ -37,7 +35,11 @@ type Determiner struct {
 	PersistentVolumeClaims []*corev1.PersistentVolumeClaim
 }
 
-func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cliresource.Result, namespace string) (*Determiner, error) {
+func New(resourceClient resource.Client, r *cliresource.Result, namespace string) (*Determiner, error) {
+	d := &Determiner{
+		resourceClient: resourceClient,
+	}
+
 	var (
 		pruneConfigMaps             bool
 		pruneSecrets                bool
@@ -62,10 +64,6 @@ func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cl
 		return nil
 	}); err != nil {
 		return nil, err
-	}
-
-	d := &Determiner{
-		resourceClient: resource.NewClient(clientset, dynamicClient),
 	}
 
 	ctx := context.Background()
