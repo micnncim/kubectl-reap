@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +16,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
 	"github.com/micnncim/kubectl-prune/pkg/determiner"
+	"github.com/micnncim/kubectl-prune/pkg/prompt"
 	"github.com/micnncim/kubectl-prune/pkg/version"
 )
 
@@ -58,6 +60,7 @@ type Options struct {
 
 	dryRunStrategy cmdutil.DryRunStrategy
 	quiet          bool
+	interactive    bool
 
 	showVersion bool
 
@@ -105,6 +108,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
+	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
 	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of kubectl-prune")
 
 	return cmd
@@ -202,12 +206,19 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			return err
 		}
 		if !prune {
-			return nil // skip prune
+			return nil // skip deletion
+		}
+
+		if o.interactive {
+			kind := info.Object.GetObjectKind().GroupVersionKind().Kind
+			if ok := prompt.Confirm(fmt.Sprintf("Are you sure to delete %s/%s?", strings.ToLower(kind), info.Name)); !ok {
+				return nil // skip deletion
+			}
 		}
 
 		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
 			o.printObj(info.Object)
-			return nil // skip prune
+			return nil // skip deletion
 		}
 
 		_, err = cliresource.
