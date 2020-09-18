@@ -103,7 +103,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	o.printFlags.AddFlags(cmd)
 
 	cmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, prune the targeted resources across all namespace except kube-system")
+	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of kubectl-prune")
 
