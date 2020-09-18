@@ -17,6 +17,7 @@ import (
 
 	"github.com/micnncim/kubectl-prune/pkg/determiner"
 	"github.com/micnncim/kubectl-prune/pkg/prompt"
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 	"github.com/micnncim/kubectl-prune/pkg/version"
 )
 
@@ -141,13 +142,14 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	if err != nil {
 		return
 	}
+	resourceClient := resource.NewClient(clientset, dynamicClient)
 
 	namespace := o.namespace
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
 
-	o.determiner, err = determiner.New(clientset, dynamicClient, o.result, namespace)
+	o.determiner, err = determiner.New(resourceClient, o.result, namespace)
 	if err != nil {
 		return
 	}
