@@ -19,6 +19,7 @@ const (
 	kindConfigMap               = "ConfigMap"
 	kindSecret                  = "Secret"
 	kindPod                     = "Pod"
+	kindPersistentVolume        = "PersistentVolume"
 	kindPersistentVolumeClaim   = "PersistentVolumeClaim"
 	kindPodDisruptionBudget     = "PodDisruptionBudget"
 	kindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
@@ -32,13 +33,15 @@ type Determiner struct {
 	UsedSecrets                map[string]struct{} // key=Secret.Name
 	UsedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
 
-	Pods []*corev1.Pod
+	Pods                   []*corev1.Pod
+	PersistentVolumeClaims []*corev1.PersistentVolumeClaim
 }
 
 func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cliresource.Result, namespace string) (*Determiner, error) {
 	var (
 		pruneConfigMaps             bool
 		pruneSecrets                bool
+		prunePersistentVolumes      bool
 		prunePersistentVolumeClaims bool
 		prunePodDisruptionBudgets   bool
 	)
@@ -49,6 +52,8 @@ func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cl
 			pruneConfigMaps = true
 		case kindSecret:
 			pruneSecrets = true
+		case kindPersistentVolume:
+			prunePersistentVolumes = true
 		case kindPersistentVolumeClaim:
 			prunePersistentVolumeClaims = true
 		case kindPodDisruptionBudget:
@@ -68,6 +73,14 @@ func New(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, r *cl
 	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
 		var err error
 		d.Pods, err = d.resourceClient.ListPods(ctx, namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if prunePersistentVolumes {
+		var err error
+		d.PersistentVolumeClaims, err = d.resourceClient.ListPersistentVolumeClaims(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -103,6 +116,18 @@ func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info)
 	case kindSecret:
 		if _, ok := d.UsedSecrets[info.Name]; !ok {
 			return true, nil
+		}
+
+	case kindPersistentVolume:
+		volume, err := resource.InfoToPersistentVolume(info)
+		if err != nil {
+			return false, err
+		}
+
+		for _, claim := range d.PersistentVolumeClaims {
+			if ok := resource.CheckVolumeSatisfyClaim(volume, claim); ok {
+				return true, nil
+			}
 		}
 
 	case kindPersistentVolumeClaim:

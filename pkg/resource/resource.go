@@ -108,6 +108,18 @@ func InfoToPod(info *resource.Info) (*corev1.Pod, error) {
 	return &pod, nil
 }
 
+func InfoToPersistentVolume(info *resource.Info) (*corev1.PersistentVolume, error) {
+	var volume corev1.PersistentVolume
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		info.Object.(runtime.Unstructured).UnstructuredContent(),
+		&volume,
+	); err != nil {
+		return nil, err
+	}
+
+	return &volume, nil
+}
+
 func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
 	var pdb policyv1beta1.PodDisruptionBudget
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
