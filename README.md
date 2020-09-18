@@ -17,6 +17,8 @@ Supported resources:
 - [x] PodDisruptionBudgets (not targeting any Pods)
 - [x] HorizontalPodAutoscalers (not targeting any resources)
 
+Since this plugin supports dry-run as described below, it also helps you to find resources you misconfigured or forgot to delete.
+
 ## Installation
 
 Download precompiled binaries from [GitHub Releases](https://github.com/micnncim/kubectl-prune/releases).
@@ -31,7 +33,7 @@ $ GO111MODULE=on go get github.com/micnncim/kubectl-prune/cmd/kubectl-prune
 
 ### Pods
 
-In this example, `kubectl-prune` deletes all Pods whose status is not `Running`.
+In this example, this plugin deletes all Pods whose status is not `Running`.
 
 ```console
 $ kubectl get po
@@ -55,7 +57,7 @@ nginx-54565674c6-fmw7g   1/1     Running     0          20s
 
 ### ConfigMaps
 
-In this example, `kubectl-prune` deletes the unused ConfigMap `config-2`.
+In this example, this plugin deletes the unused ConfigMap `config-2`.
 
 ```console
 $ kubectl get cm
@@ -103,7 +105,7 @@ config-1   1      1m30s
 
 ### Interactive Mode
 
-You can choose which resource you will delete per each one by interactive mode.
+You can choose which resource you will delete one by one by interactive mode.
 
 ```console
 $ kubectl prune cm --interactive # or '-i'
@@ -118,6 +120,7 @@ configmap/test-cm-3 deleted
 
 ```console
 $ kubectl prune --help
+
 
 Delete unused resources. Supported resources:
 
@@ -171,20 +174,20 @@ Flags:
       --tls-server-name string         Server name to use for server certificate validation. If it is not provided, the hostname used to contact the server is used
       --token string                   Bearer token for authentication to the API server
       --user string                    The name of the kubeconfig user to use
-  -v, --version                        If true, show the version of kubectl-prune
+  -v, --version                        If true, show the version of this plugin
 
 ```
 
 ### Caveat
 
-- It's recommended to run `kubectl-prune` as dry-run (client or server) first before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
-- Even if you use `--all-namespaces` or `--namespace kube-system`, `kubectl-prune` never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
+- It's recommended to run this plugin as dry-run (`client` or `server`) or interactive mode before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
+- Even if you use `--namespace kube-system` or `--all-namespaces`, this plugin never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
 
 `kubectl apply --prune` allows us to delete unused resources.
 However, it's not very flexible when we want to choose what kind resource to be deleted.
-`kubectl-prune` provides more flexible, easy way to delete resources.
+this plugin provides more flexible, easy way to delete resources.
 
 ## Similar Projects
 
