@@ -53,7 +53,7 @@ func checkCapacitySatisfyRequest(volume *corev1.PersistentVolume, claim *corev1.
 	requestedQty := claim.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
 	requestedSize := requestedQty.Value()
 
-	return volumeSize > requestedSize
+	return volumeSize >= requestedSize
 }
 
 // checkStorageClassMatch returns true if PV satisfies the PVC's requested StrageClass.

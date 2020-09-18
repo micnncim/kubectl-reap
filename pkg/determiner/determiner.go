@@ -126,9 +126,10 @@ func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info)
 
 		for _, claim := range d.PersistentVolumeClaims {
 			if ok := resource.CheckVolumeSatisfyClaim(volume, claim); ok {
-				return true, nil
+				return false, nil
 			}
 		}
+		return true, nil // should delete PV if it doesn't satisfy any PVCs
 
 	case kindPersistentVolumeClaim:
 		if _, ok := d.UsedPersistentVolumeClaims[info.Name]; !ok {
