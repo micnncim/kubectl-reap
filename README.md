@@ -12,7 +12,7 @@ Supported resources:
 - [x] ConfigMaps (not used in any Pods)
 - [x] Secrets (not used in any Pods or ServiceAccounts)
 - [x] Pods (whose status is not `Running`)
-- [x] PersistentVolumeClaim (not used in any Pods)
+- [x] PersistentVolumeClaims (not used in any Pods)
 - [x] PodDisruptionBudgets (not targeting any Pods)
 - [x] HorizontalPodAutoscalers (not targeting any resources)
 
@@ -112,7 +112,7 @@ Delete unused resources. Supported resources:
 - ConfigMaps (not used in any Pods)
 - Secrets (not used in any Pods or ServiceAccounts)
 - Pods (whose status is not Running)
-- PersistentVolumeClaim (not used in any Pods)
+- PersistentVolumeClaims (not used in any Pods)
 - PodDisruptionBudgets (not targeting any Pods)
 - HorizontalPodAutoscalers (not targeting any resources)
 
