@@ -5,7 +5,7 @@
 [![pkg.go.dev][pkg.go.dev-badge]][pkg.go.dev]
 [![license][license-badge]][license]
 
-`kubectl-prune` is a kubectl plugin that prunes unused Kubernetes resources.
+`kubectl-prune` is a kubectl plugin that deletes unused Kubernetes resources.
 
 Supported resources:
 
@@ -163,13 +163,13 @@ Flags:
 
 ```
 
-Note: When you use `--all-namespaces`, `kubectl-prune` prunes resources across all namespace except `kube-system` so that it prevents unexpected resource deletion.
+Caveat: Even if you use `--all-namespaces` or `--namespace kube-system`, `kubectl-prune` never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
 
-`kubectl apply --prune` allows us to prune unused resources.
+`kubectl apply --prune` allows us to delete unused resources.
 However, it's not very flexible when we want to choose what kind resource to be deleted.
-`kubectl-prune` provides more flexible, easy way to prune resources.
+`kubectl-prune` provides more flexible, easy way to delete resources.
 
 ## Similar Projects
 
