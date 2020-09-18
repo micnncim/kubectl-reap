@@ -101,7 +101,18 @@ NAME       DATA   AGE
 config-1   1      1m30s
 ```
 
-**It's recommended to run `kubectl-prune` as dry-run (client or server) first before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.**
+### Interactive Mode
+
+You can choose which resource you will delete per each one by interactive mode.
+
+```console
+$ kubectl prune cm --interactive # or '-i'
+? Are you sure to delete configmap/test-cm-1? Yes
+configmap/test-cm-1 deleted
+? Are you sure to delete configmap/test-cm-2? No
+? Are you sure to delete configmap/test-cm-3? Yes
+configmap/test-cm-3 deleted
+```
 
 ## Usage
 
@@ -136,7 +147,7 @@ Examples:
   $ kubectl prune po --dry-run=client
 
 Flags:
-  -A, --all-namespaces                 If true, prune the targeted resources across all namespace except kube-system
+  -A, --all-namespaces                 If true, delete the targeted resources across all namespace except kube-system
       --allow-missing-template-keys    If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats. (default true)
       --as string                      Username to impersonate for the operation
       --as-group stringArray           Group to impersonate for the operation, this flag can be repeated to specify multiple groups.
@@ -149,6 +160,7 @@ Flags:
       --dry-run string[="unchanged"]   Must be "none", "server", or "client". If client strategy, only print the object that would be sent, without sending it. If server strategy, submit server-side request without persisting the resource. (default "none")
   -h, --help                           help for kubectl
       --insecure-skip-tls-verify       If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+  -i, --interactive                    If true, a prompt asks whether resources can be deleted
       --kubeconfig string              Path to the kubeconfig file to use for CLI requests.
   -n, --namespace string               If present, the namespace scope for this CLI request
   -o, --output string                  Output format. One of: json|yaml|name|go-template|go-template-file|template|templatefile|jsonpath|jsonpath-as-json|jsonpath-file.
@@ -163,7 +175,10 @@ Flags:
 
 ```
 
-Caveat: Even if you use `--all-namespaces` or `--namespace kube-system`, `kubectl-prune` never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
+### Caveat
+
+- It's recommended to run `kubectl-prune` as dry-run (client or server) first before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
+- Even if you use `--all-namespaces` or `--namespace kube-system`, `kubectl-prune` never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
 
