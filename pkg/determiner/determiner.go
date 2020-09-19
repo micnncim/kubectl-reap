@@ -13,6 +13,8 @@ import (
 	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
+var checkVolumeSatisfyClaimFunc = resource.CheckVolumeSatisfyClaim
+
 type Determiner interface {
 	DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error)
 }
@@ -130,7 +132,7 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 		}
 
 		for _, claim := range d.persistentVolumeClaims {
-			if ok := resource.CheckVolumeSatisfyClaim(volume, claim); ok {
+			if ok := checkVolumeSatisfyClaimFunc(volume, claim); ok {
 				return false, nil
 			}
 		}

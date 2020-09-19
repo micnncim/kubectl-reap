@@ -269,6 +269,121 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 	}
 }
 
+func Test_determiner_DetermineDeletion_PersistentVolume(t *testing.T) {
+	const (
+		fakePersistentVolume       = "fake-pv"
+		fakePersistentVolumeClaim1 = "fake-pvc1"
+		fakePersistentVolumeClaim2 = "fake-pvc2"
+		fakeLabelKey               = "fake-label-key"
+		fakeLabelValue             = "fake-label-value"
+	)
+
+	var orgCheckVolumeSatisfyClaimFunc func(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool
+	orgCheckVolumeSatisfyClaimFunc, checkVolumeSatisfyClaimFunc =
+		checkVolumeSatisfyClaimFunc,
+		func(volume *corev1.PersistentVolume, claim *corev1.PersistentVolumeClaim) bool {
+			return volume.Labels[fakeLabelKey] == claim.Labels[fakeLabelKey]
+		}
+	t.Cleanup(func() {
+		checkVolumeSatisfyClaimFunc = orgCheckVolumeSatisfyClaimFunc
+	})
+
+	type fields struct {
+		persistentVolumeClaims []*corev1.PersistentVolumeClaim
+	}
+	type args struct {
+		info *cliresource.Info
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:   "PersistentVolume should be deleted when it is not used",
+			fields: fields{},
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePersistentVolume,
+					Object: &corev1.PersistentVolume{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindPersistentVolume,
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								fakeLabelKey: fakeLabelValue,
+							},
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "PersistentVolume should not be deleted when it is used",
+			fields: fields{
+				persistentVolumeClaims: []*corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fakePersistentVolumeClaim1,
+							Labels: map[string]string{
+								fakeLabelKey: fakeLabelValue,
+							},
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fakePersistentVolumeClaim2,
+						},
+					},
+				},
+			},
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePersistentVolume,
+					Object: &corev1.PersistentVolume{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindPersistentVolume,
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								fakeLabelKey: fakeLabelValue,
+							},
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := &determiner{
+				persistentVolumeClaims: tt.fields.persistentVolumeClaims,
+			}
+
+			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("determiner.DetermineDeletion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("determiner.DetermineDeletion() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_determiner_DetermineDeletion_HorizontalPodAutoscaler(t *testing.T) {
 	const (
 		fakeNamespace                = "fake-ns"
