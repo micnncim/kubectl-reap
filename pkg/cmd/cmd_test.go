@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
@@ -104,7 +103,10 @@ func TestOptions_Run(t *testing.T) {
 		}),
 	}
 
-	fakeDeterminer, err := determiner.NewFakeDeterminer([]runtime.Object{fakeObjectToBeDeleted1, fakeObjectToBeDeleted2}...)
+	fakeDeterminer, err := determiner.NewFakeDeterminer(
+		fakeObjectToBeDeleted1,
+		fakeObjectToBeDeleted2,
+	)
 	if err != nil {
 		t.Fatalf("failed to construct fake determiner")
 	}
@@ -140,7 +142,10 @@ func TestOptions_Run(t *testing.T) {
 			},
 			wantOut: makeOperationMessage(
 				fakeResourceType,
-				[]string{fakeObjectToBeDeleted1Name, fakeObjectToBeDeleted2Name},
+				[]string{
+					fakeObjectToBeDeleted1Name,
+					fakeObjectToBeDeleted2Name,
+				},
 				printedOperationTypeDeleted,
 				cmdutil.DryRunClient,
 			),
@@ -153,7 +158,10 @@ func TestOptions_Run(t *testing.T) {
 			},
 			wantOut: makeOperationMessage(
 				fakeResourceType,
-				[]string{fakeObjectToBeDeleted1Name, fakeObjectToBeDeleted2Name},
+				[]string{
+					fakeObjectToBeDeleted1Name,
+					fakeObjectToBeDeleted2Name,
+				},
 				printedOperationTypeDeleted,
 				cmdutil.DryRunServer,
 			),
