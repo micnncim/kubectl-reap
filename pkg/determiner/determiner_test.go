@@ -41,7 +41,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "configmap should be deleted when it is used",
+			name: "ConfigMap should be deleted when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
 					fakeConfigMap: {},
@@ -61,7 +61,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "configmap should not be deleted when it is not used",
+			name: "ConfigMap should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakeConfigMap,
@@ -76,7 +76,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "secret should be deleted when it is used",
+			name: "Secret should be deleted when it is used",
 			fields: fields{
 				usedSecrets: map[string]struct{}{
 					fakeSecret: {},
@@ -96,7 +96,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "secret should not be deleted when it is not used",
+			name: "Secret should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakeSecret,
@@ -111,7 +111,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "pvc should be deleted when it is used",
+			name: "PersistentVolumeClaim should be deleted when it is used",
 			fields: fields{
 				usedPersistentVolumes: map[string]struct{}{
 					fakePersistentVolumeClaim: {},
@@ -131,7 +131,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "pvc should not be deleted when it is not used",
+			name: "PersistentVolumeClaim should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakePersistentVolumeClaim,
