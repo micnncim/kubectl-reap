@@ -13,17 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	KindPod                     = "Pod"
-	KindConfigMap               = "ConfigMap"
-	KindSecret                  = "Secret"
-	KindServiceAccount          = "ServiceAccount"
-	KindPersistentVolume        = "PersistentVolume"
-	KindPersistentVolumeClaim   = "PersistentVolumeClaim"
-	KindPodDisruptionBudget     = "PodDisruptionBudget"
-	KindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
-)
-
 type Client interface {
 	ListPods(ctx context.Context, namespace string) ([]*corev1.Pod, error)
 	ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error)
