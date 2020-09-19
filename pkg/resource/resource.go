@@ -6,8 +6,8 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -82,13 +82,13 @@ func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autosc
 	}
 
 	gvk := gv.WithKind(objectRef.Kind)
-	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
+	gvr, _ := apimeta.UnsafeGuessKindToResource(gvk)
 
 	_, err = c.dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, objectRef.Name, metav1.GetOptions{})
 	switch {
 	case err == nil:
 		return true, nil
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		return false, nil
 	default:
 		return false, err
