@@ -152,7 +152,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			args: args{
 				info: &cliresource.Info{
 					Name: fakePersistentVolumeClaim,
-					Object: &corev1.PersistentVolume{
+					Object: &corev1.PersistentVolumeClaim{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,
 						},
@@ -172,7 +172,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			args: args{
 				info: &cliresource.Info{
 					Name: fakePersistentVolumeClaim,
-					Object: &corev1.PersistentVolume{
+					Object: &corev1.PersistentVolumeClaim{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,
 						},
