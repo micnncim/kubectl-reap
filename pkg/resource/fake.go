@@ -110,10 +110,10 @@ func (c *FakeClient) GetUnstructured(ctx context.Context, apiVersion, kind, name
 
 	c.mu.RLock()
 	obj, ok := c.fakeObjects[key]
+	c.mu.RUnlock()
 	if !ok {
 		return nil, nil
 	}
-	c.mu.RUnlock()
 
 	u, err := unstructuredConverter.ToUnstructured(obj)
 	if err != nil {
