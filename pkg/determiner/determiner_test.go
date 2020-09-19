@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/resource"
+	cliresource "k8s.io/cli-runtime/pkg/resource"
 )
 
 func Test_determiner_determinePrune(t *testing.T) {
@@ -30,7 +30,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 		pods                  []*corev1.Pod
 	}
 	type args struct {
-		info *resource.Info
+		info *cliresource.Info
 	}
 
 	tests := []struct {
@@ -67,7 +67,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				},
 			},
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindConfigMap,
@@ -82,7 +82,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 		{
 			name: "configmap should not be pruned when it is not used",
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindConfigMap,
@@ -121,7 +121,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				},
 			},
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindSecret,
@@ -136,7 +136,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 		{
 			name: "secret should not be pruned when it is not used",
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindSecret,
@@ -171,7 +171,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				},
 			},
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.PersistentVolume{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,
@@ -186,7 +186,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 		{
 			name: "pvc should not be pruned when it is not used",
 			args: args{
-				info: &resource.Info{
+				info: &cliresource.Info{
 					Object: &corev1.PersistentVolume{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,

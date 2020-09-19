@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/cli-runtime/pkg/resource"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -96,7 +95,7 @@ func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autosc
 	}
 }
 
-func InfoToPod(info *resource.Info) (*corev1.Pod, error) {
+func InfoToPod(info *cliresource.Info) (*corev1.Pod, error) {
 	var pod corev1.Pod
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		info.Object.(runtime.Unstructured).UnstructuredContent(),
@@ -108,7 +107,7 @@ func InfoToPod(info *resource.Info) (*corev1.Pod, error) {
 	return &pod, nil
 }
 
-func InfoToPersistentVolume(info *resource.Info) (*corev1.PersistentVolume, error) {
+func InfoToPersistentVolume(info *cliresource.Info) (*corev1.PersistentVolume, error) {
 	var volume corev1.PersistentVolume
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		info.Object.(runtime.Unstructured).UnstructuredContent(),
@@ -132,7 +131,7 @@ func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisrup
 	return &pdb, nil
 }
 
-func InfoToHorizontalPodAutoscaler(info *resource.Info) (*autoscalingv1.HorizontalPodAutoscaler, error) {
+func InfoToHorizontalPodAutoscaler(info *cliresource.Info) (*autoscalingv1.HorizontalPodAutoscaler, error) {
 	var hpa autoscalingv1.HorizontalPodAutoscaler
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		info.Object.(runtime.Unstructured).UnstructuredContent(),

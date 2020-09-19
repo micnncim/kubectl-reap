@@ -61,7 +61,6 @@ func TestOptions_Run(t *testing.T) {
 	type fields struct {
 		dryRunStrategy cmdutil.DryRunStrategy
 		determiner     *determiner.Determiner
-		result         *cliresource.Result
 		IOStreams      genericclioptions.IOStreams
 	}
 
