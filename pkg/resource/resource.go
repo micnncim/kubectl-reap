@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -99,8 +98,8 @@ func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autosc
 	}
 }
 
-func InfoToPod(info *cliresource.Info) (*corev1.Pod, error) {
-	u, err := unstructuredConverter.ToUnstructured(info.Object)
+func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +112,8 @@ func InfoToPod(info *cliresource.Info) (*corev1.Pod, error) {
 	return &pod, nil
 }
 
-func InfoToPersistentVolume(info *cliresource.Info) (*corev1.PersistentVolume, error) {
-	u, err := unstructuredConverter.ToUnstructured(info.Object)
+func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +126,8 @@ func InfoToPersistentVolume(info *cliresource.Info) (*corev1.PersistentVolume, e
 	return &volume, nil
 }
 
-func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
-	u, err := unstructuredConverter.ToUnstructured(info.Object)
+func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisruptionBudget, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +140,8 @@ func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisrup
 	return &pdb, nil
 }
 
-func InfoToHorizontalPodAutoscaler(info *cliresource.Info) (*autoscalingv1.HorizontalPodAutoscaler, error) {
-	u, err := unstructuredConverter.ToUnstructured(info.Object)
+func ObjectToHorizontalPodAutoscaler(obj runtime.Object) (*autoscalingv1.HorizontalPodAutoscaler, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}

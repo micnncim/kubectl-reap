@@ -116,8 +116,18 @@ func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info)
 			return true, nil
 		}
 
+	case kindPod:
+		pod, err := resource.ObjectToPod(info.Object)
+		if err != nil {
+			return false, err
+		}
+
+		if pod.Status.Phase != corev1.PodRunning {
+			return true, nil
+		}
+
 	case kindPersistentVolume:
-		volume, err := resource.InfoToPersistentVolume(info)
+		volume, err := resource.ObjectToPersistentVolume(info.Object)
 		if err != nil {
 			return false, err
 		}
@@ -134,18 +144,8 @@ func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info)
 			return true, nil
 		}
 
-	case kindPod:
-		pod, err := resource.InfoToPod(info)
-		if err != nil {
-			return false, err
-		}
-
-		if pod.Status.Phase != corev1.PodRunning {
-			return true, nil
-		}
-
 	case kindPodDisruptionBudget:
-		pdb, err := resource.InfoToPodDisruptionBudget(info)
+		pdb, err := resource.ObjectToPodDisruptionBudget(info.Object)
 		if err != nil {
 			return false, err
 		}
@@ -157,7 +157,7 @@ func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info)
 		return !used, nil
 
 	case kindHorizontalPodAutoscaler:
-		hpa, err := resource.InfoToHorizontalPodAutoscaler(info)
+		hpa, err := resource.ObjectToHorizontalPodAutoscaler(info.Object)
 		if err != nil {
 			return false, err
 		}
