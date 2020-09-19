@@ -42,6 +42,21 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "ConfigMap should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakeConfigMap,
+					Object: &corev1.ConfigMap{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindConfigMap,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
 			name: "ConfigMap should not be deleted when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
@@ -62,13 +77,13 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "ConfigMap should be deleted when it is not used",
+			name: "Secret should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
-					Name: fakeConfigMap,
-					Object: &corev1.ConfigMap{
+					Name: fakeSecret,
+					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindConfigMap,
+							Kind: kindSecret,
 						},
 					},
 				},
@@ -94,21 +109,6 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 				},
 			},
 			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "Secret should be deleted when it is not used",
-			args: args{
-				info: &cliresource.Info{
-					Name: fakeSecret,
-					Object: &corev1.Secret{
-						TypeMeta: metav1.TypeMeta{
-							Kind: kindSecret,
-						},
-					},
-				},
-			},
-			want:    true,
 			wantErr: false,
 		},
 		{
@@ -148,6 +148,21 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "PersistentVolumeClaim should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePersistentVolumeClaim,
+					Object: &corev1.PersistentVolume{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPersistentVolumeClaim,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
 			name: "PersistentVolumeClaim should not be deleted when it is used",
 			fields: fields{
 				usedPersistentVolumes: map[string]struct{}{
@@ -165,21 +180,6 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 				},
 			},
 			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "PersistentVolumeClaim should be deleted when it is not used",
-			args: args{
-				info: &cliresource.Info{
-					Name: fakePersistentVolumeClaim,
-					Object: &corev1.PersistentVolume{
-						TypeMeta: metav1.TypeMeta{
-							Kind: kindPersistentVolumeClaim,
-						},
-					},
-				},
-			},
-			want:    true,
 			wantErr: false,
 		},
 	}
