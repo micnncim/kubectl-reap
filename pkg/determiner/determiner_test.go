@@ -246,10 +246,10 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 			t.Parallel()
 
 			d := &determiner{
-				UsedConfigMaps:             tt.fields.usedConfigMaps,
-				UsedSecrets:                tt.fields.usedSecrets,
-				UsedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
-				Pods:                       tt.fields.pods,
+				usedConfigMaps:             tt.fields.usedConfigMaps,
+				usedSecrets:                tt.fields.usedSecrets,
+				usedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
+				pods:                       tt.fields.pods,
 			}
 
 			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
@@ -400,7 +400,7 @@ func Test_determiner_determineUsedPodDisruptionBudget(t *testing.T) {
 			t.Parallel()
 
 			d := &determiner{
-				Pods: tt.fields.pods,
+				pods: tt.fields.pods,
 			}
 
 			got, err := d.determineUsedPodDisruptionBudget(tt.args.pdb)
