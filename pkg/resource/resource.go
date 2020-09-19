@@ -46,7 +46,12 @@ func (c *client) ListPods(ctx context.Context, namespace string) ([]*corev1.Pod,
 		return nil, err
 	}
 
-	return PodListToPods(podList), nil
+	pods := make([]*corev1.Pod, 0, len(podList.Items))
+	for i := range podList.Items {
+		pods = append(pods, &podList.Items[i])
+	}
+
+	return pods, nil
 }
 
 func (c *client) ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error) {
@@ -151,12 +156,4 @@ func ObjectToHorizontalPodAutoscaler(obj runtime.Object) (*autoscalingv1.Horizon
 	}
 
 	return &hpa, nil
-}
-
-func PodListToPods(podList *corev1.PodList) []*corev1.Pod {
-	pods := make([]*corev1.Pod, 0, len(podList.Items))
-	for i := range podList.Items {
-		pods = append(pods, &podList.Items[i])
-	}
-	return pods
 }

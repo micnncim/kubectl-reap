@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
@@ -16,18 +18,61 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 
 	"github.com/micnncim/kubectl-prune/pkg/determiner"
-	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 func TestOptions_Run(t *testing.T) {
-	const testNamespace = "test"
+	const (
+		fakeNamespace                = "fake-ns"
+		fakeResourceType             = "pod"
+		fakeResourceTypePlural       = "pods"
+		fakeObjectToBeDeleted1Name   = "fake-pod-to-be-deleted-1"
+		fakeObjectToBeDeleted2Name   = "fake-pod-to-be-deleted-2"
+		fakeObjectNotToBeDeletedName = "fake-pod-not-to-be-deleted"
+	)
 
-	testPodList, _, _ := cmdtesting.TestData()
-	testPodList.Items[0].Status.Phase = corev1.PodFailed  // name="foo"
-	testPodList.Items[1].Status.Phase = corev1.PodRunning // name="bar"
-	testPods := resource.PodListToPods(testPodList)
+	var (
+		fakeObjectToBeDeleted1 = &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fakeObjectToBeDeleted1Name,
+				Namespace: fakeNamespace,
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+		}
+		fakeObjectToBeDeleted2 = &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fakeObjectToBeDeleted2Name,
+				Namespace: fakeNamespace,
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+		}
+		fakeObjectNotToBeDeleted = &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fakeObjectNotToBeDeletedName,
+				Namespace: fakeNamespace,
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+		}
+		fakeObjectList = &corev1.PodList{
+			Items: []corev1.Pod{
+				*fakeObjectToBeDeleted1,
+				*fakeObjectToBeDeleted2,
+				*fakeObjectNotToBeDeleted,
+			},
+		}
+		fakeObjectMap = map[string]*corev1.Pod{
+			fakeObjectToBeDeleted1Name:   fakeObjectToBeDeleted1,
+			fakeObjectToBeDeleted2Name:   fakeObjectToBeDeleted2,
+			fakeObjectNotToBeDeletedName: fakeObjectNotToBeDeleted,
+		}
+	)
 
-	tf := cmdtesting.NewTestFactory().WithNamespace(testNamespace)
+	tf := cmdtesting.NewTestFactory().WithNamespace(fakeNamespace)
 	defer tf.Cleanup()
 
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
@@ -36,18 +81,25 @@ func TestOptions_Run(t *testing.T) {
 		NegotiatedSerializer: cliresource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
-			case p == fmt.Sprintf("/namespaces/%s/pods", testNamespace) && m == http.MethodGet:
+			case p == fmt.Sprintf("/namespaces/%s/%s", fakeNamespace, fakeResourceTypePlural) && m == http.MethodGet:
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Header:     cmdtesting.DefaultHeader(),
-					Body:       cmdtesting.ObjBody(codec, testPodList),
+					Body:       cmdtesting.ObjBody(codec, fakeObjectList),
 				}, nil
 
-			case p == fmt.Sprintf("/namespaces/%s/pods/foo", testNamespace) && m == http.MethodDelete:
+			case strings.HasPrefix(p, fmt.Sprintf("/namespaces/%s/%s/", fakeNamespace, fakeResourceTypePlural)) && m == http.MethodDelete:
+				s := strings.Split(p, "/")
+				objName := s[len(s)-1]
+				obj, ok := fakeObjectMap[objName]
+				if !ok {
+					t.Errorf("unexpected object: %s", objName)
+				}
+
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Header:     cmdtesting.DefaultHeader(),
-					Body:       cmdtesting.ObjBody(codec, &testPodList.Items[0]),
+					Body:       cmdtesting.ObjBody(codec, obj),
 				}, nil
 
 			default:
@@ -60,8 +112,6 @@ func TestOptions_Run(t *testing.T) {
 
 	type fields struct {
 		dryRunStrategy cmdutil.DryRunStrategy
-		determiner     *determiner.Determiner
-		IOStreams      genericclioptions.IOStreams
 	}
 
 	tests := []struct {
@@ -71,24 +121,43 @@ func TestOptions_Run(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "delete pod that should be deleted",
-			fields: fields{
-				determiner: &determiner.Determiner{
-					Pods: testPods,
+			name:   "delete resources that should be deleted",
+			fields: fields{},
+			wantOut: makeOperationMessage(
+				fakeResourceType,
+				[]string{
+					fakeObjectToBeDeleted1Name,
+					fakeObjectToBeDeleted2Name,
 				},
-			},
-			wantOut: "pod/foo deleted\n",
+				printedOperationTypeDeleted,
+				cmdutil.DryRunNone,
+			),
 			wantErr: false,
 		},
 		{
-			name: "does not delete pod that should be deleted when dry-run is set",
+			name: "does not delete resources that should be deleted when dry-run is set as client",
 			fields: fields{
-				determiner: &determiner.Determiner{
-					Pods: testPods,
-				},
 				dryRunStrategy: cmdutil.DryRunClient,
 			},
-			wantOut: "pod/foo deleted (dry run)\n",
+			wantOut: makeOperationMessage(
+				fakeResourceType,
+				[]string{fakeObjectToBeDeleted1Name, fakeObjectToBeDeleted2Name},
+				printedOperationTypeDeleted,
+				cmdutil.DryRunClient,
+			),
+			wantErr: false,
+		},
+		{
+			name: "does not delete resources that should be deleted when dry-run is set as server",
+			fields: fields{
+				dryRunStrategy: cmdutil.DryRunServer,
+			},
+			wantOut: makeOperationMessage(
+				fakeResourceType,
+				[]string{fakeObjectToBeDeleted1Name, fakeObjectToBeDeleted2Name},
+				printedOperationTypeDeleted,
+				cmdutil.DryRunServer,
+			),
 			wantErr: false,
 		},
 	}
@@ -101,8 +170,9 @@ func TestOptions_Run(t *testing.T) {
 
 			o := &Options{
 				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
-				namespace:      testNamespace,
+				namespace:      fakeNamespace,
 				chunkSize:      10,
+				determiner:     &determiner.Determiner{},
 				dryRunStrategy: tt.fields.dryRunStrategy,
 				IOStreams:      streams,
 			}
@@ -111,7 +181,8 @@ func TestOptions_Run(t *testing.T) {
 				t.Errorf("failed to complete printObj: %v\n", err)
 				return
 			}
-			if err := o.completeResources(tf, "pods"); err != nil {
+
+			if err := o.completeResources(tf, fakeResourceTypePlural); err != nil {
 				t.Errorf("failed to complete resources: %v\n", err)
 				return
 			}
@@ -127,4 +198,23 @@ func TestOptions_Run(t *testing.T) {
 			}
 		})
 	}
+}
+
+func makeOperationMessage(resourceType string, objectNames []string, operation string, dryRunStrategy cmdutil.DryRunStrategy) string {
+	b := strings.Builder{}
+
+	for _, name := range objectNames {
+		msg := fmt.Sprintf("%s/%s %s", resourceType, name, operation)
+		switch dryRunStrategy {
+		case cmdutil.DryRunClient:
+			msg += " (dry run)"
+		case cmdutil.DryRunServer:
+			msg += " (server dry run)"
+		}
+		msg += "\n"
+
+		b.WriteString(msg)
+	}
+
+	return b.String()
 }
