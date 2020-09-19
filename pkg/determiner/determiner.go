@@ -13,16 +13,6 @@ import (
 	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
-const (
-	kindConfigMap               = "ConfigMap"
-	kindSecret                  = "Secret"
-	kindPod                     = "Pod"
-	kindPersistentVolume        = "PersistentVolume"
-	kindPersistentVolumeClaim   = "PersistentVolumeClaim"
-	kindPodDisruptionBudget     = "PodDisruptionBudget"
-	kindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
-)
-
 type Determiner interface {
 	DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error)
 }
@@ -57,15 +47,15 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 
 	if err := r.Visit(func(info *cliresource.Info, err error) error {
 		switch info.Object.GetObjectKind().GroupVersionKind().Kind {
-		case kindConfigMap:
+		case resource.KindConfigMap:
 			pruneConfigMaps = true
-		case kindSecret:
+		case resource.KindSecret:
 			pruneSecrets = true
-		case kindPersistentVolume:
+		case resource.KindPersistentVolume:
 			prunePersistentVolumes = true
-		case kindPersistentVolumeClaim:
+		case resource.KindPersistentVolumeClaim:
 			prunePersistentVolumeClaims = true
-		case kindPodDisruptionBudget:
+		case resource.KindPodDisruptionBudget:
 			prunePodDisruptionBudgets = true
 		}
 		return nil
@@ -113,17 +103,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 // DetermineDeletion determines whether a resource should be deleted.
 func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
-	case kindConfigMap:
-		if _, ok := d.usedConfigMaps[info.Name]; !ok {
-			return true, nil
-		}
-
-	case kindSecret:
-		if _, ok := d.usedSecrets[info.Name]; !ok {
-			return true, nil
-		}
-
-	case kindPod:
+	case resource.KindPod:
 		pod, err := resource.ObjectToPod(info.Object)
 		if err != nil {
 			return false, err
@@ -133,7 +113,17 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 			return true, nil
 		}
 
-	case kindPersistentVolume:
+	case resource.KindConfigMap:
+		if _, ok := d.usedConfigMaps[info.Name]; !ok {
+			return true, nil
+		}
+
+	case resource.KindSecret:
+		if _, ok := d.usedSecrets[info.Name]; !ok {
+			return true, nil
+		}
+
+	case resource.KindPersistentVolume:
 		volume, err := resource.ObjectToPersistentVolume(info.Object)
 		if err != nil {
 			return false, err
@@ -146,12 +136,12 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 		}
 		return true, nil // should delete PV if it doesn't satisfy any PVCs
 
-	case kindPersistentVolumeClaim:
+	case resource.KindPersistentVolumeClaim:
 		if _, ok := d.usedPersistentVolumeClaims[info.Name]; !ok {
 			return true, nil
 		}
 
-	case kindPodDisruptionBudget:
+	case resource.KindPodDisruptionBudget:
 		pdb, err := resource.ObjectToPodDisruptionBudget(info.Object)
 		if err != nil {
 			return false, err
@@ -163,7 +153,7 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 		}
 		return !used, nil
 
-	case kindHorizontalPodAutoscaler:
+	case resource.KindHorizontalPodAutoscaler:
 		hpa, err := resource.ObjectToHorizontalPodAutoscaler(info.Object)
 		if err != nil {
 			return false, err
