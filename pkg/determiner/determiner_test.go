@@ -15,6 +15,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 	const (
 		fakeConfigMap             = "fake-cm"
 		fakeSecret                = "fake-secret"
+		fakePod                   = "fake-pod"
 		fakePersistentVolumeClaim = "fake-pvc"
 		fakePodDisruptionBudget   = "fake-pdb"
 		fakeLabelKey1             = "fake-label1-key"
@@ -41,7 +42,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ConfigMap should be deleted when it is used",
+			name: "ConfigMap should not be deleted when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
 					fakeConfigMap: {},
@@ -61,7 +62,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "ConfigMap should not be deleted when it is not used",
+			name: "ConfigMap should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakeConfigMap,
@@ -76,7 +77,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Secret should be deleted when it is used",
+			name: "Secret should not be deleted when it is used",
 			fields: fields{
 				usedSecrets: map[string]struct{}{
 					fakeSecret: {},
@@ -96,7 +97,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Secret should not be deleted when it is not used",
+			name: "Secret should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakeSecret,
@@ -111,7 +112,43 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "PersistentVolumeClaim should be deleted when it is used",
+			name: "Pod should be deleted when it is not running",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePod,
+					Object: &corev1.Pod{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodFailed,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Pod should not be deleted when it is running",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePod,
+					Object: &corev1.Pod{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodRunning,
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "PersistentVolumeClaim should not be deleted when it is used",
 			fields: fields{
 				usedPersistentVolumes: map[string]struct{}{
 					fakePersistentVolumeClaim: {},
@@ -131,7 +168,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "PersistentVolumeClaim should not be deleted when it is not used",
+			name: "PersistentVolumeClaim should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
 					Name: fakePersistentVolumeClaim,
