@@ -162,11 +162,12 @@ func (d *Determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 			return false, err
 		}
 
-		found, err := d.resourceClient.FindScaleTargetRefObject(ctx, &hpa.Spec.ScaleTargetRef, info.Namespace)
+		ref := hpa.Spec.ScaleTargetRef
+		u, err := d.resourceClient.GetUnstructured(ctx, ref.APIVersion, ref.Kind, ref.Name, info.Namespace)
 		if err != nil {
 			return false, err
 		}
-		return !found, nil
+		return u == nil, nil // should delete HPA if ScaleTargetRef's target object is not found
 
 	default:
 		return false, fmt.Errorf("unsupported kind: %s/%s", kind, info.Name)
