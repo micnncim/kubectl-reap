@@ -9,21 +9,20 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
-var (
-	unstructuredConverter = runtime.DefaultUnstructuredConverter
-)
+var unstructuredConverter = runtime.DefaultUnstructuredConverter
 
 type Client interface {
 	ListPods(ctx context.Context, namespace string) ([]*corev1.Pod, error)
 	ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error)
 	ListPersistentVolumeClaims(ctx context.Context, namespace string) ([]*corev1.PersistentVolumeClaim, error)
-	FindScaleTargetRefObject(ctx context.Context, objectRef *autoscalingv1.CrossVersionObjectReference, namespace string) (bool, error)
+	GetUnstructured(ctx context.Context, apiVersion, kind, name, namespace string) (*unstructured.Unstructured, error)
 }
 
 type client struct {
@@ -78,23 +77,23 @@ func (c *client) ListPersistentVolumeClaims(ctx context.Context, namespace strin
 	return pvcs, nil
 }
 
-func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autoscalingv1.CrossVersionObjectReference, namespace string) (bool, error) {
-	gv, err := schema.ParseGroupVersion(objectRef.APIVersion)
+func (c *client) GetUnstructured(ctx context.Context, apiVersion, kind, name, namespace string) (*unstructured.Unstructured, error) {
+	gv, err := schema.ParseGroupVersion(apiVersion)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	gvk := gv.WithKind(objectRef.Kind)
+	gvk := gv.WithKind(kind)
 	gvr, _ := apimeta.UnsafeGuessKindToResource(gvk)
 
-	_, err = c.dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, objectRef.Name, metav1.GetOptions{})
+	u, err := c.dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	switch {
 	case err == nil:
-		return true, nil
+		return u, nil
 	case apierrors.IsNotFound(err):
-		return false, nil
+		return nil, nil
 	default:
-		return false, err
+		return nil, err
 	}
 }
 
@@ -119,7 +118,7 @@ func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, err
 	}
 
 	var volume corev1.PersistentVolume
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &volume); err != nil {
+	if err := unstructuredConverter.FromUnstructured(u, &volume); err != nil {
 		return nil, err
 	}
 
@@ -133,7 +132,7 @@ func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisrupti
 	}
 
 	var pdb policyv1beta1.PodDisruptionBudget
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &pdb); err != nil {
+	if err := unstructuredConverter.FromUnstructured(u, &pdb); err != nil {
 		return nil, err
 	}
 
@@ -147,7 +146,7 @@ func ObjectToHorizontalPodAutoscaler(obj runtime.Object) (*autoscalingv1.Horizon
 	}
 
 	var hpa autoscalingv1.HorizontalPodAutoscaler
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &hpa); err != nil {
+	if err := unstructuredConverter.FromUnstructured(u, &hpa); err != nil {
 		return nil, err
 	}
 
