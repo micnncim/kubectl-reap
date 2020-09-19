@@ -11,10 +11,11 @@ import (
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 )
 
-func Test_determiner_determinePrune(t *testing.T) {
+func TestDeterminer_DetermineDeletion(t *testing.T) {
 	const (
 		fakeConfigMap             = "fake-cm"
 		fakeSecret                = "fake-secret"
+		fakePod                   = "fake-pod"
 		fakePersistentVolumeClaim = "fake-pvc"
 		fakePodDisruptionBudget   = "fake-pdb"
 		fakeLabelKey1             = "fake-label1-key"
@@ -41,130 +42,176 @@ func Test_determiner_determinePrune(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "configmap should be pruned when it is used",
+			name: "ConfigMap should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakeConfigMap,
+					Object: &corev1.ConfigMap{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindConfigMap,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "ConfigMap should not be deleted when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
 					fakeConfigMap: {},
 				},
-				pods: []*corev1.Pod{
-					{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									EnvFrom: []corev1.EnvFromSource{
-										{
-											ConfigMapRef: &corev1.ConfigMapEnvSource{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: fakeConfigMap,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeConfigMap,
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindConfigMap,
 						},
 					},
-					Name: fakeConfigMap,
 				},
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "configmap should not be pruned when it is not used",
+			name: "Secret should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
-					Object: &corev1.ConfigMap{
+					Name: fakeSecret,
+					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindConfigMap,
+							Kind: kindSecret,
 						},
 					},
-					Name: fakeConfigMap,
 				},
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "secret should be pruned when it is used",
+			name: "Secret should not be deleted when it is used",
 			fields: fields{
 				usedSecrets: map[string]struct{}{
 					fakeSecret: {},
 				},
-				pods: []*corev1.Pod{
-					{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									EnvFrom: []corev1.EnvFromSource{
-										{
-											SecretRef: &corev1.SecretEnvSource{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: fakeSecret,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeSecret,
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindSecret,
 						},
 					},
-					Name: fakeSecret,
 				},
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "secret should not be pruned when it is not used",
+			name: "Pod should be deleted when it is not running",
 			args: args{
 				info: &cliresource.Info{
-					Object: &corev1.Secret{
+					Name: fakePod,
+					Object: &corev1.Pod{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindSecret,
+							Kind: kindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodFailed,
 						},
 					},
-					Name: fakeSecret,
 				},
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "pvc should be pruned when it is used",
+			name: "Pod should not be deleted when it is running",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePod,
+					Object: &corev1.Pod{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodRunning,
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "PersistentVolumeClaim should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePersistentVolumeClaim,
+					Object: &corev1.PersistentVolumeClaim{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPersistentVolumeClaim,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "PersistentVolumeClaim should not be deleted when it is used",
 			fields: fields{
 				usedPersistentVolumes: map[string]struct{}{
 					fakePersistentVolumeClaim: {},
 				},
+			},
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePersistentVolumeClaim,
+					Object: &corev1.PersistentVolumeClaim{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPersistentVolumeClaim,
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "PodDisruptionBudget should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePodDisruptionBudget,
+					Object: &policyv1beta1.PodDisruptionBudget{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPodDisruptionBudget,
+						},
+						Spec: policyv1beta1.PodDisruptionBudgetSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									fakeLabelKey1: fakeLabelValue1,
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "PodDisruptionBudget should not be deleted when it is used",
+			fields: fields{
 				pods: []*corev1.Pod{
 					{
-						Spec: corev1.PodSpec{
-							Volumes: []corev1.Volume{
-								{
-									VolumeSource: corev1.VolumeSource{
-										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-											ClaimName: fakePersistentVolumeClaim,
-										},
-									},
-								},
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								fakeLabelKey1: fakeLabelValue1,
 							},
 						},
 					},
@@ -172,30 +219,22 @@ func Test_determiner_determinePrune(t *testing.T) {
 			},
 			args: args{
 				info: &cliresource.Info{
-					Object: &corev1.PersistentVolume{
+					Name: fakePodDisruptionBudget,
+					Object: &policyv1beta1.PodDisruptionBudget{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPersistentVolumeClaim,
+							Kind: kindPodDisruptionBudget,
+						},
+						Spec: policyv1beta1.PodDisruptionBudgetSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									fakeLabelKey1: fakeLabelValue1,
+								},
+							},
 						},
 					},
-					Name: fakePersistentVolumeClaim,
 				},
 			},
 			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "pvc should not be pruned when it is not used",
-			args: args{
-				info: &cliresource.Info{
-					Object: &corev1.PersistentVolume{
-						TypeMeta: metav1.TypeMeta{
-							Kind: kindPersistentVolumeClaim,
-						},
-					},
-					Name: fakePersistentVolumeClaim,
-				},
-			},
-			want:    true,
 			wantErr: false,
 		},
 	}
@@ -213,7 +252,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				Pods:                       tt.fields.pods,
 			}
 
-			got, err := d.DeterminePrune(context.Background(), tt.args.info)
+			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("determiner.determinePrune() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -225,7 +264,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 	}
 }
 
-func Test_determineUsedPodDisruptionBudget(t *testing.T) {
+func TestDeterminer_determineUsedPodDisruptionBudget(t *testing.T) {
 	const (
 		fakePodDisruptionBudget = "fake-pdb"
 		fakePod1                = "fake-pod1"

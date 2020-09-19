@@ -23,7 +23,7 @@ const (
 	kindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
 )
 
-// Determiner determines whether a resource should be pruned.
+// Determiner determines whether a resource should be deleted.
 type Determiner struct {
 	resourceClient resource.Client
 
@@ -103,8 +103,8 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 	return d, nil
 }
 
-// DeterminePrune determines whether a resource should be pruned.
-func (d *Determiner) DeterminePrune(ctx context.Context, info *cliresource.Info) (bool, error) {
+// DetermineDeletion determines whether a resource should be deleted.
+func (d *Determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case kindConfigMap:
 		if _, ok := d.UsedConfigMaps[info.Name]; !ok {
