@@ -11,9 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	unstructuredConverter = runtime.DefaultUnstructuredConverter
 )
 
 type Client interface {
@@ -95,48 +98,56 @@ func (c *client) FindScaleTargetRefObject(ctx context.Context, objectRef *autosc
 	}
 }
 
-func InfoToPod(info *cliresource.Info) (*corev1.Pod, error) {
+func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	var pod corev1.Pod
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		info.Object.(runtime.Unstructured).UnstructuredContent(),
-		&pod,
-	); err != nil {
+	if err := unstructuredConverter.FromUnstructured(u, &pod); err != nil {
 		return nil, err
 	}
 
 	return &pod, nil
 }
 
-func InfoToPersistentVolume(info *cliresource.Info) (*corev1.PersistentVolume, error) {
+func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	var volume corev1.PersistentVolume
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		info.Object.(runtime.Unstructured).UnstructuredContent(),
-		&volume,
-	); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &volume); err != nil {
 		return nil, err
 	}
 
 	return &volume, nil
 }
 
-func InfoToPodDisruptionBudget(info *cliresource.Info) (*policyv1beta1.PodDisruptionBudget, error) {
+func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisruptionBudget, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	var pdb policyv1beta1.PodDisruptionBudget
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		info.Object.(runtime.Unstructured).UnstructuredContent(),
-		&pdb,
-	); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &pdb); err != nil {
 		return nil, err
 	}
 
 	return &pdb, nil
 }
 
-func InfoToHorizontalPodAutoscaler(info *cliresource.Info) (*autoscalingv1.HorizontalPodAutoscaler, error) {
+func ObjectToHorizontalPodAutoscaler(obj runtime.Object) (*autoscalingv1.HorizontalPodAutoscaler, error) {
+	u, err := unstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	var hpa autoscalingv1.HorizontalPodAutoscaler
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		info.Object.(runtime.Unstructured).UnstructuredContent(),
-		&hpa,
-	); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u, &hpa); err != nil {
 		return nil, err
 	}
 
