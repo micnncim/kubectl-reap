@@ -67,7 +67,7 @@ type Options struct {
 
 	printObj func(obj runtime.Object) error
 
-	determiner *determiner.Determiner
+	determiner determiner.Determiner
 	result     *cliresource.Result
 
 	genericclioptions.IOStreams

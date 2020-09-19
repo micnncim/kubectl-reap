@@ -23,8 +23,12 @@ const (
 	kindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
 )
 
-// Determiner determines whether a resource should be deleted.
-type Determiner struct {
+type Determiner interface {
+	DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error)
+}
+
+// determiner determines whether a resource should be deleted.
+type determiner struct {
 	resourceClient resource.Client
 
 	UsedConfigMaps             map[string]struct{} // key=ConfigMap.Name
@@ -35,8 +39,11 @@ type Determiner struct {
 	PersistentVolumeClaims []*corev1.PersistentVolumeClaim
 }
 
-func New(resourceClient resource.Client, r *cliresource.Result, namespace string) (*Determiner, error) {
-	d := &Determiner{
+// Guarantee *determiner implements Determiner.
+var _ Determiner = (*determiner)(nil)
+
+func New(resourceClient resource.Client, r *cliresource.Result, namespace string) (Determiner, error) {
+	d := &determiner{
 		resourceClient: resourceClient,
 	}
 
@@ -104,7 +111,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 }
 
 // DetermineDeletion determines whether a resource should be deleted.
-func (d *Determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
+func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case kindConfigMap:
 		if _, ok := d.UsedConfigMaps[info.Name]; !ok {
@@ -176,7 +183,7 @@ func (d *Determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 	return false, nil
 }
 
-func (d *Determiner) detectUsedConfigMaps() map[string]struct{} {
+func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 	usedConfigMaps := make(map[string]struct{})
 
 	for _, pod := range d.Pods {
@@ -212,7 +219,7 @@ func (d *Determiner) detectUsedConfigMaps() map[string]struct{} {
 	return usedConfigMaps
 }
 
-func (d *Determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]struct{} {
+func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]struct{} {
 	usedSecrets := make(map[string]struct{})
 
 	// Add Secrets used in Pods
@@ -256,7 +263,7 @@ func (d *Determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 	return usedSecrets
 }
 
-func (d *Determiner) detectUsedPersistentVolumeClaims() map[string]struct{} {
+func (d *determiner) detectUsedPersistentVolumeClaims() map[string]struct{} {
 	usedPersistentVolumeClaims := make(map[string]struct{})
 
 	for _, pod := range d.Pods {
@@ -271,7 +278,7 @@ func (d *Determiner) detectUsedPersistentVolumeClaims() map[string]struct{} {
 	return usedPersistentVolumeClaims
 }
 
-func (d *Determiner) determineUsedPodDisruptionBudget(pdb *policyv1beta1.PodDisruptionBudget) (bool, error) {
+func (d *determiner) determineUsedPodDisruptionBudget(pdb *policyv1beta1.PodDisruptionBudget) (bool, error) {
 	selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
 	if err != nil {
 		return false, fmt.Errorf("invalid label selector (%s): %w", pdb.Name, err)

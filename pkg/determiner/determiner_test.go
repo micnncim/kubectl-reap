@@ -11,7 +11,7 @@ import (
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 )
 
-func TestDeterminer_DetermineDeletion(t *testing.T) {
+func Test_determiner_DetermineDeletion(t *testing.T) {
 	const (
 		fakeConfigMap             = "fake-cm"
 		fakeSecret                = "fake-secret"
@@ -245,7 +245,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := &Determiner{
+			d := &determiner{
 				UsedConfigMaps:             tt.fields.usedConfigMaps,
 				UsedSecrets:                tt.fields.usedSecrets,
 				UsedPersistentVolumeClaims: tt.fields.usedPersistentVolumes,
@@ -264,7 +264,7 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 	}
 }
 
-func TestDeterminer_determineUsedPodDisruptionBudget(t *testing.T) {
+func Test_determiner_determineUsedPodDisruptionBudget(t *testing.T) {
 	const (
 		fakePodDisruptionBudget = "fake-pdb"
 		fakePod1                = "fake-pod1"
@@ -399,7 +399,7 @@ func TestDeterminer_determineUsedPodDisruptionBudget(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := &Determiner{
+			d := &determiner{
 				Pods: tt.fields.pods,
 			}
 

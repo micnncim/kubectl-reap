@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest/fake"
@@ -23,61 +24,53 @@ import (
 func TestOptions_Run(t *testing.T) {
 	const (
 		fakeNamespace                = "fake-ns"
+		fakeAPIVersion               = "v1"
+		fakeKind                     = "Pod"
 		fakeResourceType             = "pod"
 		fakeResourceTypePlural       = "pods"
-		fakeObjectToBeDeleted1Name   = "fake-pod-to-be-deleted-1"
-		fakeObjectToBeDeleted2Name   = "fake-pod-to-be-deleted-2"
-		fakeObjectNotToBeDeletedName = "fake-pod-not-to-be-deleted"
+		fakeObjectToBeDeleted1Name   = "fake-obj-to-be-deleted-1"
+		fakeObjectToBeDeleted2Name   = "fake-obj-to-be-deleted-2"
+		fakeObjectNotToBeDeletedName = "fake-obj-not-to-be-deleted"
 	)
 
-	var (
-		fakeObjectToBeDeleted1 = &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fakeObjectToBeDeleted1Name,
-				Namespace: fakeNamespace,
-			},
-			Status: corev1.PodStatus{
-				Phase: corev1.PodFailed,
-			},
-		}
-		fakeObjectToBeDeleted2 = &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fakeObjectToBeDeleted2Name,
-				Namespace: fakeNamespace,
-			},
-			Status: corev1.PodStatus{
-				Phase: corev1.PodFailed,
-			},
-		}
-		fakeObjectNotToBeDeleted = &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fakeObjectNotToBeDeletedName,
-				Namespace: fakeNamespace,
-			},
-			Status: corev1.PodStatus{
-				Phase: corev1.PodRunning,
-			},
-		}
-		fakeObjectList = &corev1.PodList{
-			Items: []corev1.Pod{
-				*fakeObjectToBeDeleted1,
-				*fakeObjectToBeDeleted2,
-				*fakeObjectNotToBeDeleted,
-			},
-		}
-		fakeObjectMap = map[string]*corev1.Pod{
-			fakeObjectToBeDeleted1Name:   fakeObjectToBeDeleted1,
-			fakeObjectToBeDeleted2Name:   fakeObjectToBeDeleted2,
-			fakeObjectNotToBeDeletedName: fakeObjectNotToBeDeleted,
-		}
-	)
+	fakeObjectBase := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       fakeKind,
+			APIVersion: fakeAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: fakeNamespace,
+		},
+	}
 
-	tf := cmdtesting.NewTestFactory().WithNamespace(fakeNamespace)
-	defer tf.Cleanup()
+	fakeObjectToBeDeleted1 := fakeObjectBase.DeepCopy()
+	fakeObjectToBeDeleted1.Name = fakeObjectToBeDeleted1Name
+
+	fakeObjectToBeDeleted2 := fakeObjectBase.DeepCopy()
+	fakeObjectToBeDeleted2.Name = fakeObjectToBeDeleted2Name
+
+	fakeObjectNotToBeDeleted := fakeObjectBase.DeepCopy()
+	fakeObjectNotToBeDeleted.Name = fakeObjectNotToBeDeletedName
+
+	fakeObjectList := &corev1.PodList{
+		Items: []corev1.Pod{
+			*fakeObjectToBeDeleted1,
+			*fakeObjectToBeDeleted2,
+			*fakeObjectNotToBeDeleted,
+		},
+	}
+	fakeObjectMap := map[string]*corev1.Pod{
+		fakeObjectToBeDeleted1Name:   fakeObjectToBeDeleted1,
+		fakeObjectToBeDeleted2Name:   fakeObjectToBeDeleted2,
+		fakeObjectNotToBeDeletedName: fakeObjectNotToBeDeleted,
+	}
+
+	testFactory := cmdtesting.NewTestFactory().WithNamespace(fakeNamespace)
+	defer testFactory.Cleanup()
 
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
-	tf.UnstructuredClient = &fake.RESTClient{
+	testFactory.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: cliresource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -94,6 +87,7 @@ func TestOptions_Run(t *testing.T) {
 				obj, ok := fakeObjectMap[objName]
 				if !ok {
 					t.Errorf("unexpected object: %s", objName)
+					return nil, nil
 				}
 
 				return &http.Response{
@@ -108,6 +102,11 @@ func TestOptions_Run(t *testing.T) {
 
 			return nil, nil
 		}),
+	}
+
+	fakeDeterminer, err := determiner.NewFakeDeterminer([]runtime.Object{fakeObjectToBeDeleted1, fakeObjectToBeDeleted2}...)
+	if err != nil {
+		t.Fatalf("failed to construct fake determiner")
 	}
 
 	type fields struct {
@@ -172,7 +171,7 @@ func TestOptions_Run(t *testing.T) {
 				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
 				namespace:      fakeNamespace,
 				chunkSize:      10,
-				determiner:     &determiner.Determiner{},
+				determiner:     fakeDeterminer,
 				dryRunStrategy: tt.fields.dryRunStrategy,
 				IOStreams:      streams,
 			}
@@ -182,12 +181,12 @@ func TestOptions_Run(t *testing.T) {
 				return
 			}
 
-			if err := o.completeResources(tf, fakeResourceTypePlural); err != nil {
+			if err := o.completeResources(testFactory, fakeResourceTypePlural); err != nil {
 				t.Errorf("failed to complete resources: %v\n", err)
 				return
 			}
 
-			if err := o.Run(context.Background(), tf); (err != nil) != tt.wantErr {
+			if err := o.Run(context.Background(), testFactory); (err != nil) != tt.wantErr {
 				t.Errorf("Options.Run() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
