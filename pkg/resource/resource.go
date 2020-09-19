@@ -7,6 +7,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	KindPod                     = "Pod"
+	KindConfigMap               = "ConfigMap"
+	KindSecret                  = "Secret"
+	KindServiceAccount          = "ServiceAccount"
+	KindPersistentVolume        = "PersistentVolume"
+	KindPersistentVolumeClaim   = "PersistentVolumeClaim"
+	KindPodDisruptionBudget     = "PodDisruptionBudget"
+	KindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
+)
+
 var unstructuredConverter = runtime.DefaultUnstructuredConverter
 
 func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
