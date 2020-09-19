@@ -5,10 +5,15 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
+
+	"github.com/micnncim/kubectl-prune/pkg/resource"
 )
 
 func Test_determiner_DetermineDeletion(t *testing.T) {
@@ -48,7 +53,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakeConfigMap,
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindConfigMap,
+							Kind: resource.KindConfigMap,
 						},
 					},
 				},
@@ -68,7 +73,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakeConfigMap,
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindConfigMap,
+							Kind: resource.KindConfigMap,
 						},
 					},
 				},
@@ -83,7 +88,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakeSecret,
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindSecret,
+							Kind: resource.KindSecret,
 						},
 					},
 				},
@@ -103,7 +108,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakeSecret,
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindSecret,
+							Kind: resource.KindSecret,
 						},
 					},
 				},
@@ -118,7 +123,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePod,
 					Object: &corev1.Pod{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPod,
+							Kind: resource.KindPod,
 						},
 						Status: corev1.PodStatus{
 							Phase: corev1.PodFailed,
@@ -136,7 +141,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePod,
 					Object: &corev1.Pod{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPod,
+							Kind: resource.KindPod,
 						},
 						Status: corev1.PodStatus{
 							Phase: corev1.PodRunning,
@@ -154,7 +159,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePersistentVolumeClaim,
 					Object: &corev1.PersistentVolumeClaim{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPersistentVolumeClaim,
+							Kind: resource.KindPersistentVolumeClaim,
 						},
 					},
 				},
@@ -174,7 +179,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePersistentVolumeClaim,
 					Object: &corev1.PersistentVolumeClaim{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPersistentVolumeClaim,
+							Kind: resource.KindPersistentVolumeClaim,
 						},
 					},
 				},
@@ -189,7 +194,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePodDisruptionBudget,
 					Object: &policyv1beta1.PodDisruptionBudget{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPodDisruptionBudget,
+							Kind: resource.KindPodDisruptionBudget,
 						},
 						Spec: policyv1beta1.PodDisruptionBudgetSpec{
 							Selector: &metav1.LabelSelector{
@@ -222,7 +227,7 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 					Name: fakePodDisruptionBudget,
 					Object: &policyv1beta1.PodDisruptionBudget{
 						TypeMeta: metav1.TypeMeta{
-							Kind: kindPodDisruptionBudget,
+							Kind: resource.KindPodDisruptionBudget,
 						},
 						Spec: policyv1beta1.PodDisruptionBudgetSpec{
 							Selector: &metav1.LabelSelector{
@@ -259,6 +264,118 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("determiner.determinePrune() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_determiner_DetermineDeletion_HorizontalPodAutoscaler(t *testing.T) {
+	const (
+		fakeNamespace                = "fake-ns"
+		fakeHorizontalPodAutoscaler  = "fake-hpa"
+		fakeScaleTargetRefAPIVersion = "apps/v1"
+		fakeScaleTargetRefKind       = "Deployment"
+		fakeScaleTargetRefName       = "fake-deploy"
+	)
+
+	type args struct {
+		info *cliresource.Info
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		fakeObjects []runtime.Object
+		want        bool
+		wantErr     bool
+	}{
+		{
+			name: "HorizontalPodAutoscaler should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakeHorizontalPodAutoscaler,
+					Object: &autoscalingv1.HorizontalPodAutoscaler{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindHorizontalPodAutoscaler,
+						},
+						Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+							ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+								APIVersion: fakeScaleTargetRefAPIVersion,
+								Kind:       fakeScaleTargetRefKind,
+								Name:       fakeScaleTargetRefName,
+							},
+						},
+					},
+				},
+			},
+			fakeObjects: []runtime.Object{},
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name: "HorizontalPodAutoscaler should not be deleted when it is used",
+			args: args{
+				info: &cliresource.Info{
+					Name:      fakeHorizontalPodAutoscaler,
+					Namespace: fakeNamespace,
+					Object: &autoscalingv1.HorizontalPodAutoscaler{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindHorizontalPodAutoscaler,
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      fakeHorizontalPodAutoscaler,
+							Namespace: fakeNamespace,
+						},
+						Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+							ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+								APIVersion: fakeScaleTargetRefAPIVersion,
+								Kind:       fakeScaleTargetRefKind,
+								Name:       fakeScaleTargetRefName,
+							},
+						},
+					},
+				},
+			},
+			fakeObjects: []runtime.Object{
+				&appsv1.Deployment{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: fakeScaleTargetRefAPIVersion,
+						Kind:       fakeScaleTargetRefKind,
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fakeScaleTargetRefName,
+						Namespace: fakeNamespace,
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, err := resource.NewFakeClient(tt.fakeObjects...)
+			if err != nil {
+				t.Errorf("failed to construct fake resource client")
+				return
+			}
+
+			d := &determiner{
+				resourceClient: c,
+			}
+
+			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("determiner.DetermineDeletion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("determiner.DetermineDeletion() = %v, want %v", got, tt.want)
 			}
 		})
 	}
