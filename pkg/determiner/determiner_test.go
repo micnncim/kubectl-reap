@@ -182,6 +182,61 @@ func TestDeterminer_DetermineDeletion(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		{
+			name: "PodDisruptionBudget should be deleted when it is not used",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePodDisruptionBudget,
+					Object: &policyv1beta1.PodDisruptionBudget{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPodDisruptionBudget,
+						},
+						Spec: policyv1beta1.PodDisruptionBudgetSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									fakeLabelKey1: fakeLabelValue1,
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "PodDisruptionBudget should not be deleted when it is used",
+			fields: fields{
+				pods: []*corev1.Pod{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								fakeLabelKey1: fakeLabelValue1,
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePodDisruptionBudget,
+					Object: &policyv1beta1.PodDisruptionBudget{
+						TypeMeta: metav1.TypeMeta{
+							Kind: kindPodDisruptionBudget,
+						},
+						Spec: policyv1beta1.PodDisruptionBudgetSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									fakeLabelKey1: fakeLabelValue1,
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
