@@ -31,12 +31,12 @@ type Determiner interface {
 type determiner struct {
 	resourceClient resource.Client
 
-	UsedConfigMaps             map[string]struct{} // key=ConfigMap.Name
-	UsedSecrets                map[string]struct{} // key=Secret.Name
-	UsedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
+	usedConfigMaps             map[string]struct{} // key=ConfigMap.Name
+	usedSecrets                map[string]struct{} // key=Secret.Name
+	usedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
 
-	Pods                   []*corev1.Pod
-	PersistentVolumeClaims []*corev1.PersistentVolumeClaim
+	pods                   []*corev1.Pod
+	persistentVolumeClaims []*corev1.PersistentVolumeClaim
 }
 
 // Guarantee *determiner implements Determiner.
@@ -77,7 +77,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 
 	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
 		var err error
-		d.Pods, err = d.resourceClient.ListPods(ctx, namespace)
+		d.pods, err = d.resourceClient.ListPods(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -85,14 +85,14 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 
 	if prunePersistentVolumes {
 		var err error
-		d.PersistentVolumeClaims, err = d.resourceClient.ListPersistentVolumeClaims(ctx, namespace)
+		d.persistentVolumeClaims, err = d.resourceClient.ListPersistentVolumeClaims(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if pruneConfigMaps {
-		d.UsedConfigMaps = d.detectUsedConfigMaps()
+		d.usedConfigMaps = d.detectUsedConfigMaps()
 	}
 
 	if pruneSecrets {
@@ -100,11 +100,11 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 		if err != nil {
 			return nil, err
 		}
-		d.UsedSecrets = d.detectUsedSecrets(sas)
+		d.usedSecrets = d.detectUsedSecrets(sas)
 	}
 
 	if prunePersistentVolumeClaims {
-		d.UsedPersistentVolumeClaims = d.detectUsedPersistentVolumeClaims()
+		d.usedPersistentVolumeClaims = d.detectUsedPersistentVolumeClaims()
 	}
 
 	return d, nil
@@ -114,12 +114,12 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case kindConfigMap:
-		if _, ok := d.UsedConfigMaps[info.Name]; !ok {
+		if _, ok := d.usedConfigMaps[info.Name]; !ok {
 			return true, nil
 		}
 
 	case kindSecret:
-		if _, ok := d.UsedSecrets[info.Name]; !ok {
+		if _, ok := d.usedSecrets[info.Name]; !ok {
 			return true, nil
 		}
 
@@ -139,7 +139,7 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 			return false, err
 		}
 
-		for _, claim := range d.PersistentVolumeClaims {
+		for _, claim := range d.persistentVolumeClaims {
 			if ok := resource.CheckVolumeSatisfyClaim(volume, claim); ok {
 				return false, nil
 			}
@@ -147,7 +147,7 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 		return true, nil // should delete PV if it doesn't satisfy any PVCs
 
 	case kindPersistentVolumeClaim:
-		if _, ok := d.UsedPersistentVolumeClaims[info.Name]; !ok {
+		if _, ok := d.usedPersistentVolumeClaims[info.Name]; !ok {
 			return true, nil
 		}
 
@@ -186,7 +186,7 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 	usedConfigMaps := make(map[string]struct{})
 
-	for _, pod := range d.Pods {
+	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.ConfigMapRef != nil {
@@ -223,7 +223,7 @@ func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 	usedSecrets := make(map[string]struct{})
 
 	// Add Secrets used in Pods
-	for _, pod := range d.Pods {
+	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.SecretRef != nil {
@@ -266,7 +266,7 @@ func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 func (d *determiner) detectUsedPersistentVolumeClaims() map[string]struct{} {
 	usedPersistentVolumeClaims := make(map[string]struct{})
 
-	for _, pod := range d.Pods {
+	for _, pod := range d.pods {
 		for _, volume := range pod.Spec.Volumes {
 			if volume.PersistentVolumeClaim == nil {
 				continue
@@ -284,7 +284,7 @@ func (d *determiner) determineUsedPodDisruptionBudget(pdb *policyv1beta1.PodDisr
 		return false, fmt.Errorf("invalid label selector (%s): %w", pdb.Name, err)
 	}
 
-	for _, pod := range d.Pods {
+	for _, pod := range d.pods {
 		if selector.Matches(labels.Set(pod.Labels)) {
 			return true, nil
 		}
