@@ -41,158 +41,105 @@ func Test_determiner_determinePrune(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "configmap should be pruned when it is used",
+			name: "configmap should be deleted when it is used",
 			fields: fields{
 				usedConfigMaps: map[string]struct{}{
 					fakeConfigMap: {},
 				},
-				pods: []*corev1.Pod{
-					{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									EnvFrom: []corev1.EnvFromSource{
-										{
-											ConfigMapRef: &corev1.ConfigMapEnvSource{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: fakeConfigMap,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeConfigMap,
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindConfigMap,
 						},
 					},
-					Name: fakeConfigMap,
 				},
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "configmap should not be pruned when it is not used",
+			name: "configmap should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeConfigMap,
 					Object: &corev1.ConfigMap{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindConfigMap,
 						},
 					},
-					Name: fakeConfigMap,
 				},
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "secret should be pruned when it is used",
+			name: "secret should be deleted when it is used",
 			fields: fields{
 				usedSecrets: map[string]struct{}{
 					fakeSecret: {},
 				},
-				pods: []*corev1.Pod{
-					{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									EnvFrom: []corev1.EnvFromSource{
-										{
-											SecretRef: &corev1.SecretEnvSource{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: fakeSecret,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeSecret,
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindSecret,
 						},
 					},
-					Name: fakeSecret,
 				},
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "secret should not be pruned when it is not used",
+			name: "secret should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
+					Name: fakeSecret,
 					Object: &corev1.Secret{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindSecret,
 						},
 					},
-					Name: fakeSecret,
 				},
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "pvc should be pruned when it is used",
+			name: "pvc should be deleted when it is used",
 			fields: fields{
 				usedPersistentVolumes: map[string]struct{}{
 					fakePersistentVolumeClaim: {},
 				},
-				pods: []*corev1.Pod{
-					{
-						Spec: corev1.PodSpec{
-							Volumes: []corev1.Volume{
-								{
-									VolumeSource: corev1.VolumeSource{
-										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-											ClaimName: fakePersistentVolumeClaim,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			args: args{
 				info: &cliresource.Info{
+					Name: fakePersistentVolumeClaim,
 					Object: &corev1.PersistentVolume{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,
 						},
 					},
-					Name: fakePersistentVolumeClaim,
 				},
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "pvc should not be pruned when it is not used",
+			name: "pvc should not be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
+					Name: fakePersistentVolumeClaim,
 					Object: &corev1.PersistentVolume{
 						TypeMeta: metav1.TypeMeta{
 							Kind: kindPersistentVolumeClaim,
 						},
 					},
-					Name: fakePersistentVolumeClaim,
 				},
 			},
 			want:    true,
