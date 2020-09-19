@@ -100,7 +100,7 @@ func TestOptions_Run(t *testing.T) {
 			streams, _, out, _ := genericclioptions.NewTestIOStreams()
 
 			o := &Options{
-				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypePrune).WithTypeSetter(scheme.Scheme),
+				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
 				namespace:      testNamespace,
 				chunkSize:      10,
 				dryRunStrategy: tt.fields.dryRunStrategy,

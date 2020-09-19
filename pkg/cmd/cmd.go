@@ -47,8 +47,8 @@ Delete unused resources. Supported resources:
 - HorizontalPodAutoscalers (not targeting any resources)
 `
 
-	// printedOperationTypePrune is used when printer outputs the result of operations.
-	printedOperationTypePrune = "deleted"
+	// printedOperationTypeDeleted is used when printer outputs the result of operations.
+	printedOperationTypeDeleted = "deleted"
 )
 
 type Options struct {
@@ -76,7 +76,7 @@ type Options struct {
 func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 	return &Options{
 		configFlags: genericclioptions.NewConfigFlags(true),
-		printFlags:  genericclioptions.NewPrintFlags(printedOperationTypePrune).WithTypeSetter(scheme.Scheme),
+		printFlags:  genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
 		chunkSize:   500,
 		IOStreams:   ioStreams,
 	}
