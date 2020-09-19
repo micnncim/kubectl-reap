@@ -203,11 +203,11 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		prune, err := o.determiner.DeterminePrune(ctx, info)
+		ok, err := o.determiner.DetermineDeletion(ctx, info)
 		if err != nil {
 			return err
 		}
-		if !prune {
+		if !ok {
 			return nil // skip deletion
 		}
 

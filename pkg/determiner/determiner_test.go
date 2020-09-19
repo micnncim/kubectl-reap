@@ -11,7 +11,7 @@ import (
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 )
 
-func Test_determiner_determinePrune(t *testing.T) {
+func TestDeterminer_DetermineDeletion(t *testing.T) {
 	const (
 		fakeConfigMap             = "fake-cm"
 		fakeSecret                = "fake-secret"
@@ -160,7 +160,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 				Pods:                       tt.fields.pods,
 			}
 
-			got, err := d.DeterminePrune(context.Background(), tt.args.info)
+			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("determiner.determinePrune() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -172,7 +172,7 @@ func Test_determiner_determinePrune(t *testing.T) {
 	}
 }
 
-func Test_determineUsedPodDisruptionBudget(t *testing.T) {
+func TestDeterminer_determineUsedPodDisruptionBudget(t *testing.T) {
 	const (
 		fakePodDisruptionBudget = "fake-pdb"
 		fakePod1                = "fake-pod1"
