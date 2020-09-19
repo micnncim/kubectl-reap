@@ -26,14 +26,14 @@ type Client interface {
 }
 
 type client struct {
-	clientset     *kubernetes.Clientset
+	clientset     kubernetes.Interface
 	dynamicClient dynamic.Interface
 }
 
 // Guarantee *client implements Client.
 var _ Client = (*client)(nil)
 
-func NewClient(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface) Client {
+func NewClient(clientset kubernetes.Interface, dynamicClient dynamic.Interface) Client {
 	return &client{
 		clientset:     clientset,
 		dynamicClient: dynamicClient,
