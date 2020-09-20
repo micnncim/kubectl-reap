@@ -48,6 +48,7 @@ jobs:
           message: "${{ steps.bump-semver.outputs.new_version }}: PR #${{ steps.get-merged-pull-request.outputs.number }} ${{ steps.get-merged-pull-request.outputs.title }}"
 
       - uses: goreleaser/goreleaser-action@v2
+        if: ${{ steps.release-label.outputs.level == 'major' || steps.release-label.outputs.level == 'minor' || steps.release-label.outputs.level == 'patch' }}
         with:
           version: latest
           args: release --rm-dist
