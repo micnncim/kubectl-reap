@@ -63,15 +63,15 @@ type Options struct {
 	configFlags *genericclioptions.ConfigFlags
 	printFlags  *genericclioptions.PrintFlags
 
-	namespace       string
-	allNamespaces   bool
-	chunkSize       int64
-	labelSelector   string
-	fieldSelector   string
-	gracePeriod     int
-	forceDeletion   bool
-	waitForDeletion bool
-	timeout         time.Duration
+	namespace        string
+	allNamespaces    bool
+	chunkSize        int64
+	labelSelector    string
+	fieldSelector    string
+	gracePeriod      int
+	forceDeletion    bool
+	needWaitDeletion bool
+	timeout          time.Duration
 
 	quiet       bool
 	interactive bool
@@ -131,7 +131,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&o.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	cmd.Flags().IntVar(&o.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
 	cmd.Flags().BoolVar(&o.forceDeletion, "force", false, "If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.")
-	cmd.Flags().BoolVar(&o.waitForDeletion, "wait", false, "If true, wait for resources to be gone before returning. This waits for finalizers.")
+	cmd.Flags().BoolVar(&o.needWaitDeletion, "wait", false, "If true, wait for resources to be gone before returning. This waits for finalizers.")
 	cmd.Flags().DurationVar(&o.timeout, "timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
@@ -317,7 +317,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		return err
 	}
 
-	if !o.waitForDeletion {
+	if !o.needWaitDeletion {
 		return nil
 	}
 
