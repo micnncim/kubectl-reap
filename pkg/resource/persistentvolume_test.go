@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	apiresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestCheckVolumeSatisfyClaim(t *testing.T) {
@@ -32,7 +32,7 @@ func TestCheckVolumeSatisfyClaim(t *testing.T) {
 				volume: &corev1.PersistentVolume{
 					Spec: corev1.PersistentVolumeSpec{
 						Capacity: corev1.ResourceList{
-							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(fakeResourceQtyHigh),
+							corev1.ResourceName(corev1.ResourceStorage): apiresource.MustParse(fakeResourceQtyHigh),
 						},
 						StorageClassName: fakeStorageClass1,
 						VolumeMode:       &fakeVolumeMode,
@@ -46,7 +46,7 @@ func TestCheckVolumeSatisfyClaim(t *testing.T) {
 					Spec: corev1.PersistentVolumeClaimSpec{
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(fakeResourceQtyLow),
+								corev1.ResourceName(corev1.ResourceStorage): apiresource.MustParse(fakeResourceQtyLow),
 							},
 						},
 						StorageClassName: &fakeStorageClass1,
@@ -65,7 +65,7 @@ func TestCheckVolumeSatisfyClaim(t *testing.T) {
 				volume: &corev1.PersistentVolume{
 					Spec: corev1.PersistentVolumeSpec{
 						Capacity: corev1.ResourceList{
-							corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(fakeResourceQtyHigh),
+							corev1.ResourceName(corev1.ResourceStorage): apiresource.MustParse(fakeResourceQtyHigh),
 						},
 						StorageClassName: fakeStorageClass1,
 						VolumeMode:       &fakeVolumeMode,
@@ -79,7 +79,7 @@ func TestCheckVolumeSatisfyClaim(t *testing.T) {
 					Spec: corev1.PersistentVolumeClaimSpec{
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(fakeResourceQtyLow),
+								corev1.ResourceName(corev1.ResourceStorage): apiresource.MustParse(fakeResourceQtyLow),
 							},
 						},
 						StorageClassName: &fakeStorageClass2,

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -304,7 +304,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			return nil
 		}
 
-		accessor, err := meta.Accessor(resp)
+		accessor, err := apimeta.Accessor(resp)
 		if err != nil {
 			// we don't have UID, but we didn't fail the delete, next best thing is just skipping the UID
 			o.Infof("%v\n", err)
