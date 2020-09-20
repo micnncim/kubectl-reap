@@ -61,6 +61,8 @@ type Options struct {
 	chunkSize     int64
 	labelSelector string
 	fieldSelector string
+	gracePeriod   int
+	forceDeletion bool
 
 	quiet       bool
 	interactive bool
@@ -115,6 +117,8 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
 	cmd.Flags().StringVarP(&o.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	cmd.Flags().StringVar(&o.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
+	cmd.Flags().IntVar(&o.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
+	cmd.Flags().BoolVar(&o.forceDeletion, "force", false, "If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
 	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of this plugin")
@@ -123,6 +127,15 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command) (err error) {
+	if !o.forceDeletion && o.gracePeriod == 0 {
+		// To preserve backwards compatibility, but prevent accidental data loss, we convert --grace-period=0
+		// into --grace-period=1. Users may provide --force to bypass this conversion.
+		o.gracePeriod = 1
+	}
+	if o.forceDeletion && o.gracePeriod < 0 {
+		o.gracePeriod = 0
+	}
+
 	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return
@@ -205,6 +218,13 @@ func (o *Options) Validate(args []string) error {
 		return errors.New("arguments must be only resource type(s)")
 	}
 
+	switch {
+	case o.forceDeletion && o.gracePeriod == 0:
+		fmt.Fprintf(o.ErrOut, "warning: Immediate deletion does not wait for confirmation that the running resource has been terminated. The resource may continue to run on the cluster indefinitely.\n")
+	case o.forceDeletion && o.gracePeriod > 0:
+		return fmt.Errorf("--force and --grace-period greater than 0 cannot be specified together")
+	}
+
 	return nil
 }
 
@@ -239,10 +259,14 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			}
 		}
 
+		opts := &metav1.DeleteOptions{}
+		if o.gracePeriod >= 0 {
+			opts = metav1.NewDeleteOptions(int64(o.gracePeriod))
+		}
 		_, err = cliresource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
-			DeleteWithOptions(info.Namespace, info.Name, &metav1.DeleteOptions{})
+			DeleteWithOptions(info.Namespace, info.Name, opts)
 		if err != nil {
 			return err
 		}
