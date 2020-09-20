@@ -183,9 +183,9 @@ Flags:
 
 ```
 
-### Caveat
+### Caveats
 
-- It's recommended to run this plugin as dry-run (`--dry-run=client` or `--dry-run=server`) or interactive mode (`--interactive`) before actually running it to examine what resources will be deleted, especially if you want to run it in a production environment.
+- It's recommended to run this plugin as dry-run (`--dry-run=client` or `--dry-run=server`) first or interactive mode (`--interactive`) in order to examine what resources will be deleted when running it, especially when you're trying to run it in a production environment.
 - Even if you use `--namespace kube-system` or `--all-namespaces`, this plugin never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 
 ## Background
@@ -195,8 +195,6 @@ However, it's not very flexible when we want to choose what kind resource to be 
 this plugin provides more flexible, easy way to delete resources.
 
 ## Similar Projects
-
-This project is inspired by `dtan4/k8s-unused-secret-detector` :cherry_blossom:
 
 - [dtan4/k8s-unused-secret-detector](https://github.com/dtan4/k8s-unused-secret-detector)
 - [FikaWorks/kubectl-plugins/prune-unused](https://github.com/FikaWorks/kubectl-plugins/tree/master/prune-unused)
