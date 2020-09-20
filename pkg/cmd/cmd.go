@@ -261,14 +261,14 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			return nil // skip deletion
 		}
 
-		deletedInfos = append(deletedInfos, info)
-
 		if o.interactive {
 			kind := info.Object.GetObjectKind().GroupVersionKind().Kind
 			if ok := prompt.Confirm(fmt.Sprintf("Are you sure to delete %s/%s?", strings.ToLower(kind), info.Name)); !ok {
 				return nil // skip deletion
 			}
 		}
+
+		deletedInfos = append(deletedInfos, info)
 
 		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
 			o.printObj(info.Object)
