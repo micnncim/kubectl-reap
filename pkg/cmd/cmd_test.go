@@ -151,22 +151,6 @@ func TestOptions_Run(t *testing.T) {
 			),
 			wantErr: false,
 		},
-		{
-			name: "does not delete resources that should be deleted when dry-run is set as server",
-			fields: fields{
-				dryRunStrategy: cmdutil.DryRunServer,
-			},
-			wantOut: makeOperationMessage(
-				fakeResourceType,
-				[]string{
-					fakeObjectToBeDeleted1Name,
-					fakeObjectToBeDeleted2Name,
-				},
-				printedOperationTypeDeleted,
-				cmdutil.DryRunServer,
-			),
-			wantErr: false,
-		},
 	}
 
 	for _, tt := range tests {
@@ -185,7 +169,7 @@ func TestOptions_Run(t *testing.T) {
 			}
 
 			if err := o.completePrinter(); err != nil {
-				t.Errorf("failed to complete printObj: %v\n", err)
+				t.Errorf("failed to complete printer: %v\n", err)
 				return
 			}
 

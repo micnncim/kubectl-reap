@@ -60,11 +60,13 @@ type Options struct {
 	allNamespaces bool
 	chunkSize     int64
 
-	dryRunStrategy cmdutil.DryRunStrategy
-	quiet          bool
-	interactive    bool
+	quiet       bool
+	interactive bool
 
 	showVersion bool
+
+	dryRunStrategy cmdutil.DryRunStrategy
+	dryRunVerifier *cliresource.DryRunVerifier
 
 	determiner determiner.Determiner
 	printer    printers.ResourcePrinter
@@ -144,6 +146,12 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	}
 	resourceClient := resource.NewClient(clientset, dynamicClient)
 
+	discoveryClient, err := f.ToDiscoveryClient()
+	if err != nil {
+		return err
+	}
+	o.dryRunVerifier = cliresource.NewDryRunVerifier(dynamicClient, discoveryClient)
+
 	namespace := o.namespace
 	if o.allNamespaces {
 		namespace = metav1.NamespaceAll
@@ -217,6 +225,11 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
 			o.printObj(info.Object)
 			return nil // skip deletion
+		}
+		if o.dryRunStrategy == cmdutil.DryRunServer {
+			if err := o.dryRunVerifier.HasSupport(info.Mapping.GroupVersionKind); err != nil {
+				return err
+			}
 		}
 
 		_, err = cliresource.
