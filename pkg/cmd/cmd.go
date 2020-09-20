@@ -5,16 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	cmdwait "k8s.io/kubectl/pkg/cmd/wait"
 
 	"github.com/micnncim/kubectl-prune/pkg/determiner"
 	"github.com/micnncim/kubectl-prune/pkg/prompt"
@@ -52,17 +57,21 @@ Delete unused resources. Supported resources:
 	printedOperationTypeDeleted = "deleted"
 )
 
+var timeWeek = 168 * time.Hour
+
 type Options struct {
 	configFlags *genericclioptions.ConfigFlags
 	printFlags  *genericclioptions.PrintFlags
 
-	namespace     string
-	allNamespaces bool
-	chunkSize     int64
-	labelSelector string
-	fieldSelector string
-	gracePeriod   int
-	forceDeletion bool
+	namespace       string
+	allNamespaces   bool
+	chunkSize       int64
+	labelSelector   string
+	fieldSelector   string
+	gracePeriod     int
+	forceDeletion   bool
+	waitForDeletion bool
+	timeout         time.Duration
 
 	quiet       bool
 	interactive bool
@@ -72,9 +81,10 @@ type Options struct {
 	dryRunStrategy cmdutil.DryRunStrategy
 	dryRunVerifier *cliresource.DryRunVerifier
 
-	determiner determiner.Determiner
-	printer    printers.ResourcePrinter
-	result     *cliresource.Result
+	determiner    determiner.Determiner
+	dynamicClient dynamic.Interface
+	printer       printers.ResourcePrinter
+	result        *cliresource.Result
 
 	genericclioptions.IOStreams
 }
@@ -97,7 +107,7 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 		Example: pruneExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if o.showVersion {
-				fmt.Fprintf(o.Out, "%s (%s)\n", version.Version, version.Revision)
+				o.Infof("%s (%s)\n", version.Version, version.Revision)
 				return
 			}
 
@@ -119,6 +129,8 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&o.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	cmd.Flags().IntVar(&o.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
 	cmd.Flags().BoolVar(&o.forceDeletion, "force", false, "If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.")
+	cmd.Flags().BoolVar(&o.waitForDeletion, "wait", false, "If true, wait for resources to be gone before returning. This waits for finalizers.")
+	cmd.Flags().DurationVar(&o.timeout, "timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
 	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of this plugin")
@@ -158,17 +170,17 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	if err != nil {
 		return
 	}
-	dynamicClient, err := f.DynamicClient()
+	o.dynamicClient, err = f.DynamicClient()
 	if err != nil {
 		return
 	}
-	resourceClient := resource.NewClient(clientset, dynamicClient)
+	resourceClient := resource.NewClient(clientset, o.dynamicClient)
 
 	discoveryClient, err := f.ToDiscoveryClient()
 	if err != nil {
 		return err
 	}
-	o.dryRunVerifier = cliresource.NewDryRunVerifier(dynamicClient, discoveryClient)
+	o.dryRunVerifier = cliresource.NewDryRunVerifier(o.dynamicClient, discoveryClient)
 
 	namespace := o.namespace
 	if o.allNamespaces {
@@ -220,7 +232,7 @@ func (o *Options) Validate(args []string) error {
 
 	switch {
 	case o.forceDeletion && o.gracePeriod == 0:
-		fmt.Fprintf(o.ErrOut, "warning: Immediate deletion does not wait for confirmation that the running resource has been terminated. The resource may continue to run on the cluster indefinitely.\n")
+		o.Errorf("warning: Immediate deletion does not wait for confirmation that the running resource has been terminated. The resource may continue to run on the cluster indefinitely.\n")
 	case o.forceDeletion && o.gracePeriod > 0:
 		return fmt.Errorf("--force and --grace-period greater than 0 cannot be specified together")
 	}
@@ -229,6 +241,13 @@ func (o *Options) Validate(args []string) error {
 }
 
 func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
+	deletedInfos := []*cliresource.Info{}
+	uidMap := cmdwait.UIDMap{}
+	deleteOpts := &metav1.DeleteOptions{}
+	if o.gracePeriod >= 0 {
+		deleteOpts = metav1.NewDeleteOptions(int64(o.gracePeriod))
+	}
+
 	if err := o.result.Visit(func(info *cliresource.Info, err error) error {
 		if info.Namespace == metav1.NamespaceSystem {
 			return nil // ignore resources in kube-system namespace
@@ -241,6 +260,8 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		if !ok {
 			return nil // skip deletion
 		}
+
+		deletedInfos = append(deletedInfos, info)
 
 		if o.interactive {
 			kind := info.Object.GetObjectKind().GroupVersionKind().Kind
@@ -259,14 +280,10 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			}
 		}
 
-		opts := &metav1.DeleteOptions{}
-		if o.gracePeriod >= 0 {
-			opts = metav1.NewDeleteOptions(int64(o.gracePeriod))
-		}
-		_, err = cliresource.
+		resp, err := cliresource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
-			DeleteWithOptions(info.Namespace, info.Name, opts)
+			DeleteWithOptions(info.Namespace, info.Name, deleteOpts)
 		if err != nil {
 			return err
 		}
@@ -275,12 +292,63 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			o.printObj(info.Object)
 		}
 
+		loc := cmdwait.ResourceLocation{
+			GroupResource: info.Mapping.Resource.GroupResource(),
+			Namespace:     info.Namespace,
+			Name:          info.Name,
+		}
+		if status, ok := resp.(*metav1.Status); ok && status.Details != nil {
+			uidMap[loc] = status.Details.UID
+			return nil
+		}
+
+		accessor, err := meta.Accessor(resp)
+		if err != nil {
+			// we don't have UID, but we didn't fail the delete, next best thing is just skipping the UID
+			o.Infof("%v\n", err)
+			return nil
+		}
+		uidMap[loc] = accessor.GetUID()
+
 		return nil
 	}); err != nil {
 		return err
 	}
 
+	if !o.waitForDeletion {
+		return nil
+	}
+
+	timeout := o.timeout
+	if timeout == 0 {
+		timeout = timeWeek
+	}
+	waitOpts := cmdwait.WaitOptions{
+		ResourceFinder: genericclioptions.ResourceFinderForResult(cliresource.InfoListVisitor(deletedInfos)),
+		UIDMap:         uidMap,
+		DynamicClient:  o.dynamicClient,
+		Timeout:        timeout,
+		Printer:        printers.NewDiscardingPrinter(),
+		ConditionFn:    cmdwait.IsDeleted,
+		IOStreams:      o.IOStreams,
+	}
+	err := waitOpts.RunWait()
+	if apierrors.IsForbidden(err) || apierrors.IsMethodNotSupported(err) {
+		// if we're forbidden from waiting, we shouldn't fail.
+		// if the resource doesn't support a verb we need, we shouldn't fail.
+		o.Errorf("%v\n", err)
+		return nil
+	}
+
 	return nil
+}
+
+func (o *Options) Infof(format string, a ...interface{}) {
+	fmt.Fprintf(o.Out, format, a...)
+}
+
+func (o *Options) Errorf(format string, a ...interface{}) {
+	fmt.Fprintf(o.ErrOut, format, a...)
 }
 
 func (o *Options) printObj(obj runtime.Object) error {
