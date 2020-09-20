@@ -59,6 +59,8 @@ type Options struct {
 	namespace     string
 	allNamespaces bool
 	chunkSize     int64
+	labelSelector string
+	fieldSelector string
 
 	quiet       bool
 	interactive bool
@@ -109,7 +111,10 @@ func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
 	o.printFlags.AddFlags(cmd)
 
 	cmdutil.AddDryRunFlag(cmd)
+
 	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
+	cmd.Flags().StringVarP(&o.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
+	cmd.Flags().StringVar(&o.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
 	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of this plugin")
@@ -184,9 +189,11 @@ func (o *Options) completeResources(f cmdutil.Factory, resourceTypes string) err
 		NamespaceParam(o.namespace).
 		DefaultNamespace().
 		AllNamespaces(o.allNamespaces).
+		LabelSelectorParam(o.labelSelector).
+		FieldSelectorParam(o.fieldSelector).
+		SelectAllParam(o.labelSelector == "" && o.fieldSelector == "").
 		ResourceTypeOrNameArgs(false, resourceTypes).
 		RequestChunksOf(o.chunkSize).
-		SelectAllParam(true).
 		Flatten().
 		Do()
 
