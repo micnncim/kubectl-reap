@@ -174,10 +174,12 @@ Flags:
   -l, --selector string                Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)
   -s, --server string                  The address and port of the Kubernetes API server
       --template string                Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].
+      --timeout duration               The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object
       --tls-server-name string         Server name to use for server certificate validation. If it is not provided, the hostname used to contact the server is used
       --token string                   Bearer token for authentication to the API server
       --user string                    The name of the kubeconfig user to use
   -v, --version                        If true, show the version of this plugin
+      --wait                           If true, wait for resources to be gone before returning. This waits for finalizers.
 
 ```
 
