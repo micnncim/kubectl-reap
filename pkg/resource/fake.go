@@ -46,13 +46,10 @@ func NewFakeClient(objects ...runtime.Object) (*FakeClient, error) {
 		switch kind {
 		case KindPod:
 			fakePods = append(fakePods, obj.(*corev1.Pod))
-			continue
 		case KindServiceAccount:
 			fakeServiceAccounts = append(fakeServiceAccounts, obj.(*corev1.ServiceAccount))
-			continue
 		case KindPersistentVolumeClaim:
 			fakePersistentVolumeClaims = append(fakePersistentVolumeClaims, obj.(*corev1.PersistentVolumeClaim))
-			continue
 		}
 
 		apiVersion, err := accessor.APIVersion(obj)
@@ -89,15 +86,24 @@ func NewFakeClient(objects ...runtime.Object) (*FakeClient, error) {
 var _ Client = (*FakeClient)(nil)
 
 func (c *FakeClient) ListPods(ctx context.Context, namespace string) ([]*corev1.Pod, error) {
-	return c.fakePods, nil
+	c.mu.RLock()
+	pods := c.fakePods
+	c.mu.RUnlock()
+	return pods, nil
 }
 
 func (c *FakeClient) ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error) {
-	return c.fakeServiceAccounts, nil
+	c.mu.RLock()
+	sas := c.fakeServiceAccounts
+	c.mu.RUnlock()
+	return sas, nil
 }
 
 func (c *FakeClient) ListPersistentVolumeClaims(ctx context.Context, namespace string) ([]*corev1.PersistentVolumeClaim, error) {
-	return c.fakePersistentVolumeClaims, nil
+	c.mu.RLock()
+	pvcs := c.fakePersistentVolumeClaims
+	c.mu.RUnlock()
+	return pvcs, nil
 }
 
 func (c *FakeClient) GetUnstructured(ctx context.Context, apiVersion, kind, name, namespace string) (*unstructured.Unstructured, error) {
