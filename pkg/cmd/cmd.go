@@ -81,6 +81,8 @@ type Options struct {
 	dryRunStrategy cmdutil.DryRunStrategy
 	dryRunVerifier *cliresource.DryRunVerifier
 
+	deleteOpts *metav1.DeleteOptions
+
 	determiner    determiner.Determiner
 	dynamicClient dynamic.Interface
 	printer       printers.ResourcePrinter
@@ -146,6 +148,10 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	}
 	if o.forceDeletion && o.gracePeriod < 0 {
 		o.gracePeriod = 0
+	}
+	o.deleteOpts = &metav1.DeleteOptions{}
+	if o.gracePeriod >= 0 {
+		o.deleteOpts = metav1.NewDeleteOptions(int64(o.gracePeriod))
 	}
 
 	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
@@ -243,10 +249,6 @@ func (o *Options) Validate(args []string) error {
 func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 	deletedInfos := []*cliresource.Info{}
 	uidMap := cmdwait.UIDMap{}
-	deleteOpts := &metav1.DeleteOptions{}
-	if o.gracePeriod >= 0 {
-		deleteOpts = metav1.NewDeleteOptions(int64(o.gracePeriod))
-	}
 
 	if err := o.result.Visit(func(info *cliresource.Info, err error) error {
 		if info.Namespace == metav1.NamespaceSystem {
@@ -283,7 +285,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		resp, err := cliresource.
 			NewHelper(info.Client, info.Mapping).
 			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
-			DeleteWithOptions(info.Namespace, info.Name, deleteOpts)
+			DeleteWithOptions(info.Namespace, info.Name, o.deleteOpts)
 		if err != nil {
 			return err
 		}
@@ -319,10 +321,17 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		return nil
 	}
 
+	o.waitDeletion(uidMap, deletedInfos)
+
+	return nil
+}
+
+func (o *Options) waitDeletion(uidMap cmdwait.UIDMap, deletedInfos []*cliresource.Info) {
 	timeout := o.timeout
 	if timeout == 0 {
 		timeout = timeWeek
 	}
+
 	waitOpts := cmdwait.WaitOptions{
 		ResourceFinder: genericclioptions.ResourceFinderForResult(cliresource.InfoListVisitor(deletedInfos)),
 		UIDMap:         uidMap,
@@ -337,10 +346,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		// if we're forbidden from waiting, we shouldn't fail.
 		// if the resource doesn't support a verb we need, we shouldn't fail.
 		o.Errorf("%v\n", err)
-		return nil
 	}
-
-	return nil
 }
 
 func (o *Options) Infof(format string, a ...interface{}) {
