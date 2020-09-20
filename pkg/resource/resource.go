@@ -21,13 +21,13 @@ const (
 var unstructuredConverter = runtime.DefaultUnstructuredConverter
 
 func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
-	u, err := unstructuredConverter.ToUnstructured(obj)
+	u, err := toUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	var pod corev1.Pod
-	if err := unstructuredConverter.FromUnstructured(u, &pod); err != nil {
+	if err := fromUnstructured(u, &pod); err != nil {
 		return nil, err
 	}
 
@@ -35,13 +35,13 @@ func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
 }
 
 func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, error) {
-	u, err := unstructuredConverter.ToUnstructured(obj)
+	u, err := toUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	var volume corev1.PersistentVolume
-	if err := unstructuredConverter.FromUnstructured(u, &volume); err != nil {
+	if err := fromUnstructured(u, &volume); err != nil {
 		return nil, err
 	}
 
@@ -49,13 +49,13 @@ func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, err
 }
 
 func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisruptionBudget, error) {
-	u, err := unstructuredConverter.ToUnstructured(obj)
+	u, err := toUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	var pdb policyv1beta1.PodDisruptionBudget
-	if err := unstructuredConverter.FromUnstructured(u, &pdb); err != nil {
+	if err := fromUnstructured(u, &pdb); err != nil {
 		return nil, err
 	}
 
@@ -63,15 +63,23 @@ func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisrupti
 }
 
 func ObjectToHorizontalPodAutoscaler(obj runtime.Object) (*autoscalingv1.HorizontalPodAutoscaler, error) {
-	u, err := unstructuredConverter.ToUnstructured(obj)
+	u, err := toUnstructured(obj)
 	if err != nil {
 		return nil, err
 	}
 
 	var hpa autoscalingv1.HorizontalPodAutoscaler
-	if err := unstructuredConverter.FromUnstructured(u, &hpa); err != nil {
+	if err := fromUnstructured(u, &hpa); err != nil {
 		return nil, err
 	}
 
 	return &hpa, nil
+}
+
+func toUnstructured(obj runtime.Object) (map[string]interface{}, error) {
+	return unstructuredConverter.ToUnstructured(obj)
+}
+
+func fromUnstructured(u map[string]interface{}, obj interface{}) error {
+	return unstructuredConverter.FromUnstructured(u, obj)
 }
