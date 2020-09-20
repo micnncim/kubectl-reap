@@ -184,7 +184,7 @@ func TestOptions_Run(t *testing.T) {
 				IOStreams:      streams,
 			}
 
-			if err := o.completePrintObj(); err != nil {
+			if err := o.completePrinter(); err != nil {
 				t.Errorf("failed to complete printObj: %v\n", err)
 				return
 			}
