@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/printers"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -65,9 +66,8 @@ type Options struct {
 
 	showVersion bool
 
-	printObj func(obj runtime.Object) error
-
 	determiner determiner.Determiner
+	printer    printers.ResourcePrinter
 	result     *cliresource.Result
 
 	genericclioptions.IOStreams
@@ -126,7 +126,7 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 		return
 	}
 
-	if err = o.completePrintObj(); err != nil {
+	if err = o.completePrinter(); err != nil {
 		return
 	}
 
@@ -157,16 +157,12 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	return
 }
 
-func (o *Options) completePrintObj() error {
+func (o *Options) completePrinter() (err error) {
 	o.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(o.printFlags, o.dryRunStrategy)
 
-	printer, err := o.printFlags.ToPrinter()
+	o.printer, err = o.printFlags.ToPrinter()
 	if err != nil {
 		return err
-	}
-
-	o.printObj = func(obj runtime.Object) error {
-		return printer.PrintObj(obj, o.Out)
 	}
 
 	return nil
@@ -241,4 +237,8 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 	}
 
 	return nil
+}
+
+func (o *Options) printObj(obj runtime.Object) error {
+	return o.printer.PrintObj(obj, o.Out)
 }
