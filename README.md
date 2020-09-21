@@ -7,6 +7,8 @@
 
 `kubectl-reap` is a kubectl plugin that deletes unused Kubernetes resources.
 
+![screencast](/docs/assets/screencast.svg)
+
 Supported resources:
 
 - [x] Pods (whose status is not `Running`)
