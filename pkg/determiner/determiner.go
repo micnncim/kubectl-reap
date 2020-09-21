@@ -120,6 +120,9 @@ func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.In
 	case resource.KindPersistentVolumeClaim:
 		return d.determineDeletionPersistentVolumeClaim(info)
 
+	case resource.KindJob:
+		return d.determineDeletionJob(info)
+
 	case resource.KindPodDisruptionBudget:
 		return d.determineDeletionPodDisruptionBudget(info)
 
@@ -167,6 +170,15 @@ func (d *determiner) determineDeletionPersistentVolume(info *cliresource.Info) (
 func (d *determiner) determineDeletionPersistentVolumeClaim(info *cliresource.Info) (bool, error) {
 	_, ok := d.usedPersistentVolumeClaims[info.Name]
 	return !ok, nil
+}
+
+func (d *determiner) determineDeletionJob(info *cliresource.Info) (bool, error) {
+	job, err := resource.ObjectToJob(info.Object)
+	if err != nil {
+		return false, err
+	}
+
+	return job.Status.CompletionTime != nil, nil
 }
 
 func (d *determiner) determineDeletionPodDisruptionBudget(info *cliresource.Info) (bool, error) {
