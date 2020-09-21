@@ -106,73 +106,94 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 func (d *determiner) DetermineDeletion(ctx context.Context, info *cliresource.Info) (bool, error) {
 	switch kind := info.Object.GetObjectKind().GroupVersionKind().Kind; kind {
 	case resource.KindPod:
-		pod, err := resource.ObjectToPod(info.Object)
-		if err != nil {
-			return false, err
-		}
-
-		if pod.Status.Phase != corev1.PodRunning {
-			return true, nil
-		}
+		return d.determineDeletionPod(info)
 
 	case resource.KindConfigMap:
-		if _, ok := d.usedConfigMaps[info.Name]; !ok {
-			return true, nil
-		}
+		return d.determineDeletionConfigMap(info)
 
 	case resource.KindSecret:
-		if _, ok := d.usedSecrets[info.Name]; !ok {
-			return true, nil
-		}
+		return d.determineDeletionSecret(info)
 
 	case resource.KindPersistentVolume:
-		volume, err := resource.ObjectToPersistentVolume(info.Object)
-		if err != nil {
-			return false, err
-		}
-
-		for _, claim := range d.persistentVolumeClaims {
-			if ok := checkVolumeSatisfyClaimFunc(volume, claim); ok {
-				return false, nil
-			}
-		}
-		return true, nil // should delete PV if it doesn't satisfy any PVCs
+		return d.determineDeletionPersistentVolume(info)
 
 	case resource.KindPersistentVolumeClaim:
-		if _, ok := d.usedPersistentVolumeClaims[info.Name]; !ok {
-			return true, nil
-		}
+		return d.determineDeletionPersistentVolumeClaim(info)
 
 	case resource.KindPodDisruptionBudget:
-		pdb, err := resource.ObjectToPodDisruptionBudget(info.Object)
-		if err != nil {
-			return false, err
-		}
-
-		used, err := d.determineUsedPodDisruptionBudget(pdb)
-		if err != nil {
-			return false, err
-		}
-		return !used, nil
+		return d.determineDeletionPodDisruptionBudget(info)
 
 	case resource.KindHorizontalPodAutoscaler:
-		hpa, err := resource.ObjectToHorizontalPodAutoscaler(info.Object)
-		if err != nil {
-			return false, err
-		}
-
-		ref := hpa.Spec.ScaleTargetRef
-		u, err := d.resourceClient.GetUnstructured(ctx, ref.APIVersion, ref.Kind, ref.Name, info.Namespace)
-		if err != nil {
-			return false, err
-		}
-		return u == nil, nil // should delete HPA if ScaleTargetRef's target object is not found
+		return d.determineDeletionHorizontalPodAutoscaler(ctx, info)
 
 	default:
 		return false, fmt.Errorf("unsupported kind: %s/%s", kind, info.Name)
 	}
+}
 
-	return false, nil
+func (d *determiner) determineDeletionPod(info *cliresource.Info) (bool, error) {
+	pod, err := resource.ObjectToPod(info.Object)
+	if err != nil {
+		return false, err
+	}
+
+	return pod.Status.Phase != corev1.PodRunning, nil
+}
+
+func (d *determiner) determineDeletionConfigMap(info *cliresource.Info) (bool, error) {
+	_, ok := d.usedConfigMaps[info.Name]
+	return !ok, nil
+}
+
+func (d *determiner) determineDeletionSecret(info *cliresource.Info) (bool, error) {
+	_, ok := d.usedSecrets[info.Name]
+	return !ok, nil
+}
+
+func (d *determiner) determineDeletionPersistentVolume(info *cliresource.Info) (bool, error) {
+	volume, err := resource.ObjectToPersistentVolume(info.Object)
+	if err != nil {
+		return false, err
+	}
+
+	for _, claim := range d.persistentVolumeClaims {
+		if ok := checkVolumeSatisfyClaimFunc(volume, claim); ok {
+			return false, nil
+		}
+	}
+	return true, nil // should delete PV if it doesn't satisfy any PVCs
+}
+
+func (d *determiner) determineDeletionPersistentVolumeClaim(info *cliresource.Info) (bool, error) {
+	_, ok := d.usedPersistentVolumeClaims[info.Name]
+	return !ok, nil
+}
+
+func (d *determiner) determineDeletionPodDisruptionBudget(info *cliresource.Info) (bool, error) {
+	pdb, err := resource.ObjectToPodDisruptionBudget(info.Object)
+	if err != nil {
+		return false, err
+	}
+
+	used, err := d.determineUsedPodDisruptionBudget(pdb)
+	if err != nil {
+		return false, err
+	}
+	return !used, nil
+}
+
+func (d *determiner) determineDeletionHorizontalPodAutoscaler(ctx context.Context, info *cliresource.Info) (bool, error) {
+	hpa, err := resource.ObjectToHorizontalPodAutoscaler(info.Object)
+	if err != nil {
+		return false, err
+	}
+
+	ref := hpa.Spec.ScaleTargetRef
+	u, err := d.resourceClient.GetUnstructured(ctx, ref.APIVersion, ref.Kind, ref.Name, info.Namespace)
+	if err != nil {
+		return false, err
+	}
+	return u == nil, nil // should delete HPA if ScaleTargetRef's target object is not found
 }
 
 func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
