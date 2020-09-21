@@ -21,14 +21,14 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	cmdwait "k8s.io/kubectl/pkg/cmd/wait"
 
-	"github.com/micnncim/kubectl-prune/pkg/determiner"
-	"github.com/micnncim/kubectl-prune/pkg/prompt"
-	"github.com/micnncim/kubectl-prune/pkg/resource"
-	"github.com/micnncim/kubectl-prune/pkg/version"
+	"github.com/micnncim/kubectl-reap/pkg/determiner"
+	"github.com/micnncim/kubectl-reap/pkg/prompt"
+	"github.com/micnncim/kubectl-reap/pkg/resource"
+	"github.com/micnncim/kubectl-reap/pkg/version"
 )
 
 const (
-	pruneShortDescription = `
+	reapShortDescription = `
 Delete unused resources. Supported resources:
 
 - Pods (whose status is not Running)
@@ -41,18 +41,18 @@ Delete unused resources. Supported resources:
 - HorizontalPodAutoscalers (not targeting any resources)
 `
 
-	pruneExample = `
+	reapExample = `
   # Delete ConfigMaps not mounted on any Pods and in the current namespace and context
-  $ kubectl prune configmaps
+  $ kubectl reap configmaps
 
   # Delete unused ConfigMaps and Secrets in the namespace/my-namespace and context/my-context
-  $ kubectl prune cm,secret -n my-namespace --context my-context
+  $ kubectl reap cm,secret -n my-namespace --context my-context
 
   # Delete ConfigMaps not mounted on any Pods and across all namespace
-  $ kubectl prune cm --all-namespaces
+  $ kubectl reap cm --all-namespaces
 
   # Delete Pods whose status is not Running as client-side dry-run
-  $ kubectl prune po --dry-run=client`
+  $ kubectl reap po --dry-run=client`
 
 	// printedOperationTypeDeleted is used when printer outputs the result of operations.
 	printedOperationTypeDeleted = "deleted"
@@ -101,13 +101,13 @@ func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 	}
 }
 
-func NewCmdPrune(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdReap(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:     "kubectl prune RESOURCE_TYPE",
-		Short:   pruneShortDescription,
-		Example: pruneExample,
+		Use:     "kubectl reap RESOURCE_TYPE",
+		Short:   reapShortDescription,
+		Example: reapExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if o.showVersion {
 				o.Infof("%s (%s)\n", version.Version, version.Revision)

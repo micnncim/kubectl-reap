@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 
-	"github.com/micnncim/kubectl-prune/pkg/resource"
+	"github.com/micnncim/kubectl-reap/pkg/resource"
 )
 
 func Test_determiner_DetermineDeletion(t *testing.T) {
@@ -300,11 +300,11 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 
 			got, err := d.DetermineDeletion(context.Background(), tt.args.info)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("determiner.determinePrune() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("determiner.DetermineDeletion() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("determiner.determinePrune() = %v, want %v", got, tt.want)
+				t.Errorf("determiner.DetermineDeletion() = %v, want %v", got, tt.want)
 			}
 		})
 	}

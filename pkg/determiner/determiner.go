@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	cliresource "k8s.io/cli-runtime/pkg/resource"
 
-	"github.com/micnncim/kubectl-prune/pkg/resource"
+	"github.com/micnncim/kubectl-reap/pkg/resource"
 )
 
 var checkVolumeSatisfyClaimFunc = resource.CheckVolumeSatisfyClaim
@@ -40,25 +40,25 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 	}
 
 	var (
-		pruneConfigMaps             bool
-		pruneSecrets                bool
-		prunePersistentVolumes      bool
-		prunePersistentVolumeClaims bool
-		prunePodDisruptionBudgets   bool
+		reapConfigMaps             bool
+		reapSecrets                bool
+		reapPersistentVolumes      bool
+		reapPersistentVolumeClaims bool
+		reapPodDisruptionBudgets   bool
 	)
 
 	if err := r.Visit(func(info *cliresource.Info, err error) error {
 		switch info.Object.GetObjectKind().GroupVersionKind().Kind {
 		case resource.KindConfigMap:
-			pruneConfigMaps = true
+			reapConfigMaps = true
 		case resource.KindSecret:
-			pruneSecrets = true
+			reapSecrets = true
 		case resource.KindPersistentVolume:
-			prunePersistentVolumes = true
+			reapPersistentVolumes = true
 		case resource.KindPersistentVolumeClaim:
-			prunePersistentVolumeClaims = true
+			reapPersistentVolumeClaims = true
 		case resource.KindPodDisruptionBudget:
-			prunePodDisruptionBudgets = true
+			reapPodDisruptionBudgets = true
 		}
 		return nil
 	}); err != nil {
@@ -67,7 +67,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 
 	ctx := context.Background()
 
-	if pruneConfigMaps || pruneSecrets || prunePersistentVolumeClaims || prunePodDisruptionBudgets {
+	if reapConfigMaps || reapSecrets || reapPersistentVolumeClaims || reapPodDisruptionBudgets {
 		var err error
 		d.pods, err = d.resourceClient.ListPods(ctx, namespace)
 		if err != nil {
@@ -75,7 +75,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 		}
 	}
 
-	if prunePersistentVolumes {
+	if reapPersistentVolumes {
 		var err error
 		d.persistentVolumeClaims, err = d.resourceClient.ListPersistentVolumeClaims(ctx, namespace)
 		if err != nil {
@@ -83,11 +83,11 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 		}
 	}
 
-	if pruneConfigMaps {
+	if reapConfigMaps {
 		d.usedConfigMaps = d.detectUsedConfigMaps()
 	}
 
-	if pruneSecrets {
+	if reapSecrets {
 		sas, err := d.resourceClient.ListServiceAccounts(ctx, namespace)
 		if err != nil {
 			return nil, err
@@ -95,7 +95,7 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 		d.usedSecrets = d.detectUsedSecrets(sas)
 	}
 
-	if prunePersistentVolumeClaims {
+	if reapPersistentVolumeClaims {
 		d.usedPersistentVolumeClaims = d.detectUsedPersistentVolumeClaims()
 	}
 
