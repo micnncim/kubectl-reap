@@ -38,17 +38,17 @@ In this example, this plugin deletes all Pods whose status is not `Running`.
 
 ```console
 $ kubectl get po
-NAME                     READY   STATUS      RESTARTS   AGE
-nginx-54565674c6-fmw7g   1/1     Running     0          10s
-nginx-54565674c6-t8hnm   0/1     Pending     0          20s
-nginx-54565674c6-v7xw9   0/1     Failed      0          30s
-nginx-54565674c6-wwb6m   0/1     Unknown     0          40s
-job-kqpxc                0/1     Completed   0          50s
+NAME          READY   STATUS      RESTARTS   AGE
+pod-running   1/1     Running     0          10s
+pod-pending   0/1     Pending     0          20s
+pod-failed    0/1     Failed      0          30s
+pod-unknown   0/1     Unknown     0          40s
+job-kqpxc     0/1     Completed   0          50s
 
 $ kubectl reap po
-pod/nginx-54565674c6-t8hnm deleted
-pod/nginx-54565674c6-v7xw9 deleted
-pod/nginx-54565674c6-wwb6m deleted
+pod/pod-pending deleted
+pod/pod-failed deleted
+pod/pod-unknown deleted
 pod/job-kqpxc deleted
 ```
 
