@@ -50,10 +50,6 @@ pod/nginx-54565674c6-t8hnm deleted
 pod/nginx-54565674c6-v7xw9 deleted
 pod/nginx-54565674c6-wwb6m deleted
 pod/job-kqpxc deleted
-
-$ kubectl get po
-NAME                     READY   STATUS      RESTARTS   AGE
-nginx-54565674c6-fmw7g   1/1     Running     0          20s
 ```
 
 ### ConfigMaps
@@ -84,24 +80,8 @@ spec:
       name: config-1
 EOF
 
-$ kubectl get po
-NAME                     READY   STATUS              RESTARTS   AGE
-nginx                    1/1     Running             0          0m40s
-
-$ kubectl reap cm --ury-run=client
-configmap/config-2 deleted (dry run)
-
-$ kubectl get cm
-NAME       DATA   AGE
-config-1   1      1m15s
-config-2   1      1m10s
-
 $ kubectl reap cm
 configmap/config-2 deleted
-
-$ kubectl get cm
-NAME       DATA   AGE
-config-1   1      1m30s
 ```
 
 ### Interactive Mode
@@ -110,11 +90,11 @@ You can choose which resource you will delete one by one by interactive mode.
 
 ```console
 $ kubectl reap cm --interactive # or '-i'
-? Are you sure to delete configmap/test-cm-1? Yes
-configmap/test-cm-1 deleted
-? Are you sure to delete configmap/test-cm-2? No
-? Are you sure to delete configmap/test-cm-3? Yes
-configmap/test-cm-3 deleted
+? Are you sure to delete configmap/config-1? Yes
+configmap/config-1 deleted
+? Are you sure to delete configmap/config-2? No
+? Are you sure to delete configmap/config-3? Yes
+configmap/config-3 deleted
 ```
 
 ## Usage
