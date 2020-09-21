@@ -1,4 +1,4 @@
-module github.com/micnncim/kubectl-prune
+module github.com/micnncim/kubectl-reap
 
 go 1.14
 

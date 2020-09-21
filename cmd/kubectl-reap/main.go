@@ -6,11 +6,11 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/micnncim/kubectl-prune/pkg/cmd"
+	"github.com/micnncim/kubectl-reap/pkg/cmd"
 )
 
 func main() {
-	cmd := cmd.NewCmdPrune(genericclioptions.IOStreams{
+	cmd := cmd.NewCmdReap(genericclioptions.IOStreams{
 		In:     os.Stdin,
 		Out:    os.Stdout,
 		ErrOut: os.Stderr,
