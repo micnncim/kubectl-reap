@@ -24,10 +24,16 @@ Since this plugin supports dry-run as described below, it also helps you to find
 
 Download precompiled binaries from [GitHub Releases](https://github.com/micnncim/kubectl-reap/releases).
 
-If you want to build a binary from source:
+### Via [Krew](https://github.com/kubernetes-sigs/krew)
 
 ```
-$ GO111MODULE=on go get github.com/micnncim/kubectl-reap/cmd/kubectl-reap
+$ kubectl krew install reap
+```
+
+### Via Go
+
+```
+$ go get github.com/micnncim/kubectl-reap/cmd/kubectl-reap
 ```
 
 ## Examples
