@@ -2,6 +2,7 @@ package resource
 
 import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,6 +15,7 @@ const (
 	KindServiceAccount          = "ServiceAccount"
 	KindPersistentVolume        = "PersistentVolume"
 	KindPersistentVolumeClaim   = "PersistentVolumeClaim"
+	KindJob                     = "Job"
 	KindPodDisruptionBudget     = "PodDisruptionBudget"
 	KindHorizontalPodAutoscaler = "HorizontalPodAutoscaler"
 )
@@ -46,6 +48,20 @@ func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, err
 	}
 
 	return &volume, nil
+}
+
+func ObjectToJob(obj runtime.Object) (*batchv1.Job, error) {
+	u, err := toUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	var job batchv1.Job
+	if err := fromUnstructured(u, &job); err != nil {
+		return nil, err
+	}
+
+	return &job, nil
 }
 
 func ObjectToPodDisruptionBudget(obj runtime.Object) (*policyv1beta1.PodDisruptionBudget, error) {

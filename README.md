@@ -9,11 +9,12 @@
 
 Supported resources:
 
+- [x] Pods (whose status is not `Running`)
 - [x] ConfigMaps (not used in any Pods)
 - [x] Secrets (not used in any Pods or ServiceAccounts)
-- [x] Pods (whose status is not `Running`)
 - [x] PersistentVolumes (not satisfying any PersistentVolumeClaims)
 - [x] PersistentVolumeClaims (not used in any Pods)
+- [x] Jobs (completed)
 - [x] PodDisruptionBudgets (not targeting any Pods)
 - [x] HorizontalPodAutoscalers (not targeting any resources)
 
@@ -123,11 +124,12 @@ $ kubectl prune --help
 
 Delete unused resources. Supported resources:
 
+- Pods (whose status is not Running)
 - ConfigMaps (not used in any Pods)
 - Secrets (not used in any Pods or ServiceAccounts)
-- Pods (whose status is not Running)
 - PersistentVolumes (not satisfying any PersistentVolumeClaims)
 - PersistentVolumeClaims (not used in any Pods)
+- Jobs (completed)
 - PodDisruptionBudgets (not targeting any Pods)
 - HorizontalPodAutoscalers (not targeting any resources)
 

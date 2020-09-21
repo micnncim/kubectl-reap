@@ -28,6 +28,19 @@ import (
 )
 
 const (
+	pruneShortDescription = `
+Delete unused resources. Supported resources:
+
+- Pods (whose status is not Running)
+- ConfigMaps (not used in any Pods)
+- Secrets (not used in any Pods or ServiceAccounts)
+- PersistentVolumes (not satisfying any PersistentVolumeClaims)
+- PersistentVolumeClaims (not used in any Pods)
+- Jobs (completed)
+- PodDisruptionBudgets (not targeting any Pods)
+- HorizontalPodAutoscalers (not targeting any resources)
+`
+
 	pruneExample = `
   # Delete ConfigMaps not mounted on any Pods and in the current namespace and context
   $ kubectl prune configmaps
@@ -40,18 +53,6 @@ const (
 
   # Delete Pods whose status is not Running as client-side dry-run
   $ kubectl prune po --dry-run=client`
-
-	pruneShortDescription = `
-Delete unused resources. Supported resources:
-
-- ConfigMaps (not used in any Pods)
-- Secrets (not used in any Pods or ServiceAccounts)
-- Pods (whose status is not Running)
-- PersistentVolumes (not satisfying any PersistentVolumeClaims)
-- PersistentVolumeClaims (not used in any Pods)
-- PodDisruptionBudgets (not targeting any Pods)
-- HorizontalPodAutoscalers (not targeting any resources)
-`
 
 	// printedOperationTypeDeleted is used when printer outputs the result of operations.
 	printedOperationTypeDeleted = "deleted"

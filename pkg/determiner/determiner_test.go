@@ -3,10 +3,12 @@ package determiner
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,16 +20,19 @@ import (
 
 func Test_determiner_DetermineDeletion(t *testing.T) {
 	const (
+		fakePod                   = "fake-pod"
 		fakeConfigMap             = "fake-cm"
 		fakeSecret                = "fake-secret"
-		fakePod                   = "fake-pod"
 		fakePersistentVolumeClaim = "fake-pvc"
+		fakeJob                   = "fake-job"
 		fakePodDisruptionBudget   = "fake-pdb"
 		fakeLabelKey1             = "fake-label1-key"
 		fakeLabelValue1           = "fake-label1-value"
 		fakeLabelKey2             = "fake-label2-key"
 		fakeLabelValue2           = "fake-label2-value"
 	)
+
+	fakeTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	type fields struct {
 		usedConfigMaps        map[string]struct{}
@@ -46,6 +51,42 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 		want    bool
 		wantErr bool
 	}{
+		{
+			name: "Pod should be deleted when it is not running",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePod,
+					Object: &corev1.Pod{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodFailed,
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Pod should not be deleted when it is running",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakePod,
+					Object: &corev1.Pod{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindPod,
+						},
+						Status: corev1.PodStatus{
+							Phase: corev1.PodRunning,
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
 		{
 			name: "ConfigMap should be deleted when it is not used",
 			args: args{
@@ -117,42 +158,6 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Pod should be deleted when it is not running",
-			args: args{
-				info: &cliresource.Info{
-					Name: fakePod,
-					Object: &corev1.Pod{
-						TypeMeta: metav1.TypeMeta{
-							Kind: resource.KindPod,
-						},
-						Status: corev1.PodStatus{
-							Phase: corev1.PodFailed,
-						},
-					},
-				},
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Pod should not be deleted when it is running",
-			args: args{
-				info: &cliresource.Info{
-					Name: fakePod,
-					Object: &corev1.Pod{
-						TypeMeta: metav1.TypeMeta{
-							Kind: resource.KindPod,
-						},
-						Status: corev1.PodStatus{
-							Phase: corev1.PodRunning,
-						},
-					},
-				},
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
 			name: "PersistentVolumeClaim should be deleted when it is not used",
 			args: args{
 				info: &cliresource.Info{
@@ -181,6 +186,42 @@ func Test_determiner_DetermineDeletion(t *testing.T) {
 						TypeMeta: metav1.TypeMeta{
 							Kind: resource.KindPersistentVolumeClaim,
 						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Job should be deleted when it is completed",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakeJob,
+					Object: &batchv1.Job{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindJob,
+						},
+						Status: batchv1.JobStatus{
+							CompletionTime: &metav1.Time{
+								Time: fakeTime,
+							},
+						},
+					},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Job should not be deleted when it is not completed",
+			args: args{
+				info: &cliresource.Info{
+					Name: fakeJob,
+					Object: &batchv1.Job{
+						TypeMeta: metav1.TypeMeta{
+							Kind: resource.KindJob,
+						},
+						Status: batchv1.JobStatus{},
 					},
 				},
 			},
