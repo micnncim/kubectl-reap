@@ -1,9 +1,9 @@
 builds:
-- main: ./cmd/kubectl-prune/main.go
+- main: ./cmd/kubectl-reap/main.go
   ldflags: 
     - -s -w
-    - -X github.com/micnncim/kubectl-prune/pkg/version.Version={{.Tag}}
-    - -X github.com/micnncim/kubectl-prune/pkg/version.Revision={{.ShortCommit}}
+    - -X github.com/micnncim/kubectl-reap/pkg/version.Version={{.Tag}}
+    - -X github.com/micnncim/kubectl-reap/pkg/version.Revision={{.ShortCommit}}
   goos:
   - linux
   - darwin
