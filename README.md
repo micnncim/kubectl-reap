@@ -22,6 +22,8 @@ Supported resources:
 
 Since this plugin supports dry-run as described below, it also helps you to find resources you misconfigured or forgot to delete.
 
+Before getting started, read [the caveats of using this plugin](#caveats).
+
 ## Installation
 
 Download precompiled binaries from [GitHub Releases](https://github.com/micnncim/kubectl-reap/releases).
