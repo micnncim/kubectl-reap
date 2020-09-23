@@ -178,7 +178,7 @@ Flags:
 - It's recommended to run this plugin as dry-run (`--dry-run=client` or `--dry-run=server`) first or interactive mode (`--interactive`) in order to examine what resources will be deleted when running it, especially when you're trying to run it in a production environment.
 - Even if you use `--namespace kube-system` or `--all-namespaces`, this plugin never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 - This plugin doesn't determine whether custom controllers or CRDs consume or depend on the supported resources. Make sure the resources you want to reap aren't used by them.
-  - e.g.) A Secret, which isn't used in any Pods or ServiceAccounts but used in a custom controller, can be deleted
+  - e.g.) A Secret, which isn't used in any Pods or ServiceAccounts but used in [cert-manager](https://cert-manager.io), can be deleted
 
 ## Background
 
