@@ -10,7 +10,7 @@ import (
 )
 
 type FakeDeterminer struct {
-	objectsToBeDeleted map[fakeObjectKey]struct{}
+	fakeObjectsToBeDeleted map[fakeObjectKey]struct{}
 
 	mu sync.RWMutex
 }
@@ -25,7 +25,7 @@ type fakeObjectKey struct {
 var _ Determiner = (*FakeDeterminer)(nil)
 
 func NewFakeDeterminer(objects ...runtime.Object) (*FakeDeterminer, error) {
-	objectsToBeDeleted := make(map[fakeObjectKey]struct{})
+	fakeObjectsToBeDeleted := make(map[fakeObjectKey]struct{})
 
 	accessor := apimeta.NewAccessor()
 
@@ -48,12 +48,12 @@ func NewFakeDeterminer(objects ...runtime.Object) (*FakeDeterminer, error) {
 			name:      name,
 			namespace: namespace,
 		}
-		objectsToBeDeleted[key] = struct{}{}
+		fakeObjectsToBeDeleted[key] = struct{}{}
 	}
 
 	return &FakeDeterminer{
-		objectsToBeDeleted: objectsToBeDeleted,
-		mu:                 sync.RWMutex{},
+		fakeObjectsToBeDeleted: fakeObjectsToBeDeleted,
+		mu:                     sync.RWMutex{},
 	}, nil
 }
 
@@ -65,7 +65,7 @@ func (d *FakeDeterminer) DetermineDeletion(_ context.Context, info *cliresource.
 	}
 
 	d.mu.RLock()
-	_, ok := d.objectsToBeDeleted[key]
+	_, ok := d.fakeObjectsToBeDeleted[key]
 	d.mu.RUnlock()
 
 	return ok, nil
