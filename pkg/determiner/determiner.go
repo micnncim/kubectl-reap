@@ -247,7 +247,7 @@ func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]struct{} {
 	usedSecrets := make(map[string]struct{})
 
-	// Add Secrets used in Pods
+	// Add Secrets used by Pods
 	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
@@ -278,7 +278,7 @@ func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 		}
 	}
 
-	// Add Secrets used in ServiceAccounts
+	// Add Secrets used by ServiceAccounts
 	for _, sa := range sas {
 		for _, secret := range sa.Secrets {
 			usedSecrets[secret.Name] = struct{}{}
