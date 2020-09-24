@@ -32,10 +32,10 @@ const (
 Delete unused resources. Supported resources:
 
 - Pods (whose status is not Running)
-- ConfigMaps (not used in any Pods)
-- Secrets (not used in any Pods or ServiceAccounts)
+- ConfigMaps (not used by any Pods)
+- Secrets (not used by any Pods or ServiceAccounts)
 - PersistentVolumes (not satisfying any PersistentVolumeClaims)
-- PersistentVolumeClaims (not used in any Pods)
+- PersistentVolumeClaims (not used by any Pods)
 - Jobs (completed)
 - PodDisruptionBudgets (not targeting any Pods)
 - HorizontalPodAutoscalers (not targeting any resources)

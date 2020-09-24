@@ -11,14 +11,16 @@
 
 Supported resources:
 
-- [x] Pods (whose status is not `Running`)
-- [x] ConfigMaps (not used in any Pods)
-- [x] Secrets (not used in any Pods or ServiceAccounts)
-- [x] PersistentVolumes (not satisfying any PersistentVolumeClaims)
-- [x] PersistentVolumeClaims (not used in any Pods)
-- [x] Jobs (completed)
-- [x] PodDisruptionBudgets (not targeting any Pods)
-- [x] HorizontalPodAutoscalers (not targeting any resources)
+|          Kind           |                 Condition                 |
+| ----------------------- | ----------------------------------------- |
+| Pod                     | Not running                               |
+| ConfigMap               | Not used by any Pods                      |
+| Secret                  | Not used by any Pods or ServiceAccounts   |
+| PersistentVolume        | Not satisfying any PersistentVolumeClaims |
+| PersistentVolumeClaim   | Not used by any Pods                      |
+| Job                     | Completed                                 |
+| PodDisruptionBudget     | Not targeting any Pods                    |
+| HorizontalPodAutoscaler | Not targeting any resources               |
 
 Since this plugin supports dry-run as described below, it also helps you to find resources you misconfigured or forgot to delete.
 
@@ -115,10 +117,10 @@ $ kubectl reap --help
 Delete unused resources. Supported resources:
 
 - Pods (whose status is not Running)
-- ConfigMaps (not used in any Pods)
-- Secrets (not used in any Pods or ServiceAccounts)
+- ConfigMaps (not used by any Pods)
+- Secrets (not used by any Pods or ServiceAccounts)
 - PersistentVolumes (not satisfying any PersistentVolumeClaims)
-- PersistentVolumeClaims (not used in any Pods)
+- PersistentVolumeClaims (not used by any Pods)
 - Jobs (completed)
 - PodDisruptionBudgets (not targeting any Pods)
 - HorizontalPodAutoscalers (not targeting any resources)
@@ -180,7 +182,7 @@ Flags:
 - It's recommended to run this plugin as dry-run (`--dry-run=client` or `--dry-run=server`) first or interactive mode (`--interactive`) in order to examine what resources will be deleted when running it, especially when you're trying to run it in a production environment.
 - Even if you use `--namespace kube-system` or `--all-namespaces`, this plugin never deletes any resources in `kube-system` so that it prevents unexpected resource deletion.
 - This plugin doesn't determine whether custom controllers or CRDs consume or depend on the supported resources. Make sure the resources you want to reap aren't used by them.
-  - e.g.) A Secret, which isn't used in any Pods or ServiceAccounts but used in [cert-manager](https://cert-manager.io), can be deleted
+  - e.g.) A Secret, which isn't used by any Pods or ServiceAccounts but used by [cert-manager](https://cert-manager.io), can be deleted
 
 ## Background
 
