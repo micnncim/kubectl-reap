@@ -136,7 +136,7 @@ func NewCmdReap(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().DurationVar(&o.timeout, "timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
 	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
 	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
-	cmd.Flags().BoolVarP(&o.showVersion, "version", "v", false, "If true, show the version of this plugin")
+	cmd.Flags().BoolVar(&o.showVersion, "version", false, "If true, show the version of this plugin")
 
 	return cmd
 }
