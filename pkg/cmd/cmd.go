@@ -60,7 +60,7 @@ Delete unused resources. Supported resources:
 
 var timeWeek = 168 * time.Hour
 
-type Options struct {
+type runner struct {
 	configFlags *genericclioptions.ConfigFlags
 	printFlags  *genericclioptions.PrintFlags
 
@@ -92,8 +92,8 @@ type Options struct {
 	genericclioptions.IOStreams
 }
 
-func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
-	return &Options{
+func newRunner(ioStreams genericclioptions.IOStreams) *runner {
+	return &runner{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		printFlags:  genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
 		chunkSize:   500,
@@ -102,74 +102,74 @@ func NewOptions(ioStreams genericclioptions.IOStreams) *Options {
 }
 
 func NewCmdReap(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewOptions(streams)
+	r := newRunner(streams)
 
 	cmd := &cobra.Command{
 		Use:     "kubectl reap RESOURCE_TYPE",
 		Short:   reapShortDescription,
 		Example: reapExample,
 		Run: func(cmd *cobra.Command, args []string) {
-			if o.showVersion {
-				o.Infof("%s (%s)\n", version.Version, version.Revision)
+			if r.showVersion {
+				r.Infof("%s (%s)\n", version.Version, version.Revision)
 				return
 			}
 
-			f := cmdutil.NewFactory(o.configFlags)
+			f := cmdutil.NewFactory(r.configFlags)
 
-			cmdutil.CheckErr(o.Validate(args))
-			cmdutil.CheckErr(o.Complete(f, args, cmd))
-			cmdutil.CheckErr(o.Run(context.Background(), f))
+			cmdutil.CheckErr(r.Validate(args))
+			cmdutil.CheckErr(r.Complete(f, args, cmd))
+			cmdutil.CheckErr(r.Run(context.Background(), f))
 		},
 	}
 
-	o.configFlags.AddFlags(cmd.Flags())
-	o.printFlags.AddFlags(cmd)
+	r.configFlags.AddFlags(cmd.Flags())
+	r.printFlags.AddFlags(cmd)
 
 	cmdutil.AddDryRunFlag(cmd)
 
-	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
-	cmd.Flags().StringVarP(&o.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	cmd.Flags().StringVar(&o.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
-	cmd.Flags().IntVar(&o.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
-	cmd.Flags().BoolVar(&o.forceDeletion, "force", false, "If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.")
-	cmd.Flags().BoolVar(&o.needWaitDeletion, "wait", false, "If true, wait for resources to be gone before returning. This waits for finalizers.")
-	cmd.Flags().DurationVar(&o.timeout, "timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
-	cmd.Flags().BoolVarP(&o.quiet, "quiet", "q", false, "If true, no output is produced")
-	cmd.Flags().BoolVarP(&o.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
-	cmd.Flags().BoolVar(&o.showVersion, "version", false, "If true, show the version of this plugin")
+	cmd.Flags().BoolVarP(&r.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
+	cmd.Flags().StringVarP(&r.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
+	cmd.Flags().StringVar(&r.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
+	cmd.Flags().IntVar(&r.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
+	cmd.Flags().BoolVar(&r.forceDeletion, "force", false, "If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of some resources may result in inconsistency or data loss and requires confirmation.")
+	cmd.Flags().BoolVar(&r.needWaitDeletion, "wait", false, "If true, wait for resources to be gone before returning. This waits for finalizers.")
+	cmd.Flags().DurationVar(&r.timeout, "timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
+	cmd.Flags().BoolVarP(&r.quiet, "quiet", "q", false, "If true, no output is produced")
+	cmd.Flags().BoolVarP(&r.interactive, "interactive", "i", false, "If true, a prompt asks whether resources can be deleted")
+	cmd.Flags().BoolVar(&r.showVersion, "version", false, "If true, show the version of this plugin")
 
 	return cmd
 }
 
-func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command) (err error) {
-	if !o.forceDeletion && o.gracePeriod == 0 {
+func (r *runner) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command) (err error) {
+	if !r.forceDeletion && r.gracePeriod == 0 {
 		// To preserve backwards compatibility, but prevent accidental data loss, we convert --grace-period=0
 		// into --grace-period=1. Users may provide --force to bypass this conversion.
-		o.gracePeriod = 1
+		r.gracePeriod = 1
 	}
-	if o.forceDeletion && o.gracePeriod < 0 {
-		o.gracePeriod = 0
+	if r.forceDeletion && r.gracePeriod < 0 {
+		r.gracePeriod = 0
 	}
-	o.deleteOpts = &metav1.DeleteOptions{}
-	if o.gracePeriod >= 0 {
-		o.deleteOpts = metav1.NewDeleteOptions(int64(o.gracePeriod))
+	r.deleteOpts = &metav1.DeleteOptions{}
+	if r.gracePeriod >= 0 {
+		r.deleteOpts = metav1.NewDeleteOptions(int64(r.gracePeriod))
 	}
 
-	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
+	r.namespace, _, err = r.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return
 	}
 
-	o.dryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
+	r.dryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
 	if err != nil {
 		return
 	}
 
-	if err = o.completePrinter(); err != nil {
+	if err = r.completePrinter(); err != nil {
 		return
 	}
 
-	if err = o.completeResources(f, args[0]); err != nil {
+	if err = r.completeResources(f, args[0]); err != nil {
 		return
 	}
 
@@ -177,24 +177,24 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	if err != nil {
 		return
 	}
-	o.dynamicClient, err = f.DynamicClient()
+	r.dynamicClient, err = f.DynamicClient()
 	if err != nil {
 		return
 	}
-	resourceClient := resource.NewClient(clientset, o.dynamicClient)
+	resourceClient := resource.NewClient(clientset, r.dynamicClient)
 
 	discoveryClient, err := f.ToDiscoveryClient()
 	if err != nil {
 		return err
 	}
-	o.dryRunVerifier = cliresource.NewDryRunVerifier(o.dynamicClient, discoveryClient)
+	r.dryRunVerifier = cliresource.NewDryRunVerifier(r.dynamicClient, discoveryClient)
 
-	namespace := o.namespace
-	if o.allNamespaces {
+	namespace := r.namespace
+	if r.allNamespaces {
 		namespace = metav1.NamespaceAll
 	}
 
-	o.determiner, err = determiner.New(resourceClient, o.result, namespace)
+	r.determiner, err = determiner.New(resourceClient, r.result, namespace)
 	if err != nil {
 		return
 	}
@@ -202,10 +202,10 @@ func (o *Options) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command)
 	return
 }
 
-func (o *Options) completePrinter() (err error) {
-	o.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(o.printFlags, o.dryRunStrategy)
+func (r *runner) completePrinter() (err error) {
+	r.printFlags = cmdutil.PrintFlagsWithDryRunStrategy(r.printFlags, r.dryRunStrategy)
 
-	o.printer, err = o.printFlags.ToPrinter()
+	r.printer, err = r.printFlags.ToPrinter()
 	if err != nil {
 		return err
 	}
@@ -213,50 +213,50 @@ func (o *Options) completePrinter() (err error) {
 	return nil
 }
 
-func (o *Options) completeResources(f cmdutil.Factory, resourceTypes string) error {
-	o.result = f.
+func (r *runner) completeResources(f cmdutil.Factory, resourceTypes string) error {
+	r.result = f.
 		NewBuilder().
 		Unstructured().
 		ContinueOnError().
-		NamespaceParam(o.namespace).
+		NamespaceParam(r.namespace).
 		DefaultNamespace().
-		AllNamespaces(o.allNamespaces).
-		LabelSelectorParam(o.labelSelector).
-		FieldSelectorParam(o.fieldSelector).
-		SelectAllParam(o.labelSelector == "" && o.fieldSelector == "").
+		AllNamespaces(r.allNamespaces).
+		LabelSelectorParam(r.labelSelector).
+		FieldSelectorParam(r.fieldSelector).
+		SelectAllParam(r.labelSelector == "" && r.fieldSelector == "").
 		ResourceTypeOrNameArgs(false, resourceTypes).
-		RequestChunksOf(o.chunkSize).
+		RequestChunksOf(r.chunkSize).
 		Flatten().
 		Do()
 
-	return o.result.Err()
+	return r.result.Err()
 }
 
-func (o *Options) Validate(args []string) error {
-	if len(args) != 1 && !o.showVersion {
+func (r *runner) Validate(args []string) error {
+	if len(args) != 1 && !r.showVersion {
 		return errors.New("arguments must be only resource type(s)")
 	}
 
 	switch {
-	case o.forceDeletion && o.gracePeriod == 0:
-		o.Errorf("warning: Immediate deletion does not wait for confirmation that the running resource has been terminated. The resource may continue to run on the cluster indefinitely.\n")
-	case o.forceDeletion && o.gracePeriod > 0:
+	case r.forceDeletion && r.gracePeriod == 0:
+		r.Errorf("warning: Immediate deletion does not wait for confirmation that the running resource has been terminated. The resource may continue to run on the cluster indefinitely.\n")
+	case r.forceDeletion && r.gracePeriod > 0:
 		return fmt.Errorf("--force and --grace-period greater than 0 cannot be specified together")
 	}
 
 	return nil
 }
 
-func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
+func (r *runner) Run(ctx context.Context, f cmdutil.Factory) error {
 	deletedInfos := []*cliresource.Info{}
 	uidMap := cmdwait.UIDMap{}
 
-	if err := o.result.Visit(func(info *cliresource.Info, err error) error {
+	if err := r.result.Visit(func(info *cliresource.Info, err error) error {
 		if info.Namespace == metav1.NamespaceSystem {
 			return nil // ignore resources in kube-system namespace
 		}
 
-		ok, err := o.determiner.DetermineDeletion(ctx, info)
+		ok, err := r.determiner.DetermineDeletion(ctx, info)
 		if err != nil {
 			return err
 		}
@@ -264,7 +264,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 			return nil // skip deletion
 		}
 
-		if o.interactive {
+		if r.interactive {
 			kind := info.Object.GetObjectKind().GroupVersionKind().Kind
 			if ok := prompt.Confirm(fmt.Sprintf("Are you sure to delete %s/%s?", strings.ToLower(kind), info.Name)); !ok {
 				return nil // skip deletion
@@ -273,26 +273,26 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 
 		deletedInfos = append(deletedInfos, info)
 
-		if o.dryRunStrategy == cmdutil.DryRunClient && !o.quiet {
-			o.printObj(info.Object)
+		if r.dryRunStrategy == cmdutil.DryRunClient && !r.quiet {
+			r.printObj(info.Object)
 			return nil // skip deletion
 		}
-		if o.dryRunStrategy == cmdutil.DryRunServer {
-			if err := o.dryRunVerifier.HasSupport(info.Mapping.GroupVersionKind); err != nil {
+		if r.dryRunStrategy == cmdutil.DryRunServer {
+			if err := r.dryRunVerifier.HasSupport(info.Mapping.GroupVersionKind); err != nil {
 				return err
 			}
 		}
 
 		resp, err := cliresource.
 			NewHelper(info.Client, info.Mapping).
-			DryRun(o.dryRunStrategy == cmdutil.DryRunServer).
-			DeleteWithOptions(info.Namespace, info.Name, o.deleteOpts)
+			DryRun(r.dryRunStrategy == cmdutil.DryRunServer).
+			DeleteWithOptions(info.Namespace, info.Name, r.deleteOpts)
 		if err != nil {
 			return err
 		}
 
-		if !o.quiet {
-			o.printObj(info.Object)
+		if !r.quiet {
+			r.printObj(info.Object)
 		}
 
 		loc := cmdwait.ResourceLocation{
@@ -308,7 +308,7 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		accessor, err := apimeta.Accessor(resp)
 		if err != nil {
 			// we don't have UID, but we didn't fail the delete, next best thing is just skipping the UID
-			o.Infof("%v\n", err)
+			r.Infof("%v\n", err)
 			return nil
 		}
 		uidMap[loc] = accessor.GetUID()
@@ -318,17 +318,17 @@ func (o *Options) Run(ctx context.Context, f cmdutil.Factory) error {
 		return err
 	}
 
-	if !o.needWaitDeletion {
+	if !r.needWaitDeletion {
 		return nil
 	}
 
-	o.waitDeletion(uidMap, deletedInfos)
+	r.waitDeletion(uidMap, deletedInfos)
 
 	return nil
 }
 
-func (o *Options) waitDeletion(uidMap cmdwait.UIDMap, deletedInfos []*cliresource.Info) {
-	timeout := o.timeout
+func (r *runner) waitDeletion(uidMap cmdwait.UIDMap, deletedInfos []*cliresource.Info) {
+	timeout := r.timeout
 	if timeout == 0 {
 		timeout = timeWeek
 	}
@@ -336,28 +336,28 @@ func (o *Options) waitDeletion(uidMap cmdwait.UIDMap, deletedInfos []*cliresourc
 	waitOpts := cmdwait.WaitOptions{
 		ResourceFinder: genericclioptions.ResourceFinderForResult(cliresource.InfoListVisitor(deletedInfos)),
 		UIDMap:         uidMap,
-		DynamicClient:  o.dynamicClient,
+		DynamicClient:  r.dynamicClient,
 		Timeout:        timeout,
 		Printer:        printers.NewDiscardingPrinter(),
 		ConditionFn:    cmdwait.IsDeleted,
-		IOStreams:      o.IOStreams,
+		IOStreams:      r.IOStreams,
 	}
 	err := waitOpts.RunWait()
 	if apierrors.IsForbidden(err) || apierrors.IsMethodNotSupported(err) {
 		// if we're forbidden from waiting, we shouldn't fail.
 		// if the resource doesn't support a verb we need, we shouldn't fail.
-		o.Errorf("%v\n", err)
+		r.Errorf("%v\n", err)
 	}
 }
 
-func (o *Options) Infof(format string, a ...interface{}) {
-	fmt.Fprintf(o.Out, format, a...)
+func (r *runner) Infof(format string, a ...interface{}) {
+	fmt.Fprintf(r.Out, format, a...)
 }
 
-func (o *Options) Errorf(format string, a ...interface{}) {
-	fmt.Fprintf(o.ErrOut, format, a...)
+func (r *runner) Errorf(format string, a ...interface{}) {
+	fmt.Fprintf(r.ErrOut, format, a...)
 }
 
-func (o *Options) printObj(obj runtime.Object) error {
-	return o.printer.PrintObj(obj, o.Out)
+func (r *runner) printObj(obj runtime.Object) error {
+	return r.printer.PrintObj(obj, r.Out)
 }
