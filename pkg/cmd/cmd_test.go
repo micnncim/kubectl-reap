@@ -20,7 +20,7 @@ import (
 	"github.com/micnncim/kubectl-reap/pkg/determiner"
 )
 
-func TestOptions_Run(t *testing.T) {
+func Test_runner_Run(t *testing.T) {
 	const (
 		fakeNamespace                = "fake-ns"
 		fakeAPIVersion               = "v1"
@@ -159,7 +159,7 @@ func TestOptions_Run(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			streams, _, out, _ := genericclioptions.NewTestIOStreams()
 
-			o := &Options{
+			r := &runner{
 				printFlags:     genericclioptions.NewPrintFlags(printedOperationTypeDeleted).WithTypeSetter(scheme.Scheme),
 				namespace:      fakeNamespace,
 				chunkSize:      10,
@@ -168,18 +168,18 @@ func TestOptions_Run(t *testing.T) {
 				IOStreams:      streams,
 			}
 
-			if err := o.completePrinter(); err != nil {
+			if err := r.completePrinter(); err != nil {
 				t.Errorf("failed to complete printer: %v\n", err)
 				return
 			}
 
-			if err := o.completeResources(testFactory, fakeResourceTypePlural); err != nil {
+			if err := r.completeResources(testFactory, fakeResourceTypePlural); err != nil {
 				t.Errorf("failed to complete resources: %v\n", err)
 				return
 			}
 
-			if err := o.Run(context.Background(), testFactory); (err != nil) != tt.wantErr {
-				t.Errorf("Options.Run() error = %v, wantErr %v", err, tt.wantErr)
+			if err := r.Run(context.Background(), testFactory); (err != nil) != tt.wantErr {
+				t.Errorf("runner.Run() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
