@@ -188,7 +188,7 @@ Flags:
 
 `kubectl apply --prune` allows us to delete unused resources.
 However, it's not very flexible when we want to choose what kind resource to be deleted.
-this plugin provides more flexible, easy way to delete resources.
+This plugin provides more flexible, easy way to delete resources.
 
 ## Similar Projects
 
