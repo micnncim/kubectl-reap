@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strings"
+
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -98,4 +100,20 @@ func toUnstructured(obj runtime.Object) (map[string]interface{}, error) {
 
 func fromUnstructured(u map[string]interface{}, obj interface{}) error {
 	return unstructuredConverter.FromUnstructured(u, obj)
+}
+
+// GetAllResources get all supported resources
+func GetAllResources() string {
+	var all []string
+	all = append(all,
+		KindPod,
+		KindConfigMap,
+		KindSecret,
+		KindServiceAccount,
+		KindPersistentVolume,
+		KindPersistentVolumeClaim,
+		KindJob,
+		KindPodDisruptionBudget,
+		KindHorizontalPodAutoscaler)
+	return strings.Join(all, ",")
 }

@@ -52,7 +52,11 @@ Delete unused resources. Supported resources:
   $ kubectl reap cm --all-namespaces
 
   # Delete Pods whose status is not Running as client-side dry-run
-  $ kubectl reap po --dry-run=client`
+  $ kubectl reap po --dry-run=client
+
+  # Delete all unused resources that supported and across all namespace as client-side dry-run
+  $ kubectl reap -a -A --dry-run=client
+`
 
 	// printedOperationTypeDeleted is used when printer outputs the result of operations.
 	printedOperationTypeDeleted = "deleted"
@@ -66,6 +70,7 @@ type runner struct {
 
 	namespace        string
 	allNamespaces    bool
+	allResources     bool
 	chunkSize        int64
 	labelSelector    string
 	fieldSelector    string
@@ -128,6 +133,7 @@ func NewCmdReap(streams genericclioptions.IOStreams) *cobra.Command {
 	cmdutil.AddDryRunFlag(cmd)
 
 	cmd.Flags().BoolVarP(&r.allNamespaces, "all-namespaces", "A", false, "If true, delete the targeted resources across all namespace except kube-system")
+	cmd.Flags().BoolVarP(&r.allResources, "all-resources", "a", false, "If true, delete all unused resources that supported")
 	cmd.Flags().StringVarP(&r.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	cmd.Flags().StringVar(&r.fieldSelector, "field-selector", "", "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	cmd.Flags().IntVar(&r.gracePeriod, "grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).")
@@ -167,6 +173,10 @@ func (r *runner) Complete(f cmdutil.Factory, args []string, cmd *cobra.Command) 
 
 	if err = r.completePrinter(); err != nil {
 		return
+	}
+
+	if r.allResources && len(args) == 0 {
+		args = append(args, resource.GetAllResources())
 	}
 
 	if err = r.completeResources(f, args[0]); err != nil {
@@ -233,7 +243,7 @@ func (r *runner) completeResources(f cmdutil.Factory, resourceTypes string) erro
 }
 
 func (r *runner) Validate(args []string) error {
-	if len(args) != 1 && !r.showVersion {
+	if len(args) != 1 && !r.showVersion && !r.allResources {
 		return errors.New("arguments must be only resource type(s)")
 	}
 
