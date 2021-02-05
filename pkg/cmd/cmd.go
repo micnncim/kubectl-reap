@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -114,11 +117,22 @@ func NewCmdReap(streams genericclioptions.IOStreams) *cobra.Command {
 				return
 			}
 
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+			go func() {
+				<-ch
+				r.Infof("Canceling execution...\n")
+				cancel()
+			}()
+
 			f := cmdutil.NewFactory(r.configFlags)
 
 			cmdutil.CheckErr(r.Validate(args))
 			cmdutil.CheckErr(r.Complete(f, args, cmd))
-			cmdutil.CheckErr(r.Run(context.Background(), f))
+			cmdutil.CheckErr(r.Run(ctx, f))
 		},
 	}
 
