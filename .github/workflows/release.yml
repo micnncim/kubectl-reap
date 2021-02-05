@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.15
 
       - uses: actions-ecosystem/action-get-merged-pull-request@v1
         id: get-merged-pull-request
