@@ -15,10 +15,10 @@ jobs:
 
       - uses: actions-ecosystem/action-remove-labels@v1
         with:
-          github_token: ${{ secrets.github_token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: ${{ steps.size.outputs.stale_labels }}
 
       - uses: actions-ecosystem/action-add-labels@v1
         with:
-          github_token: ${{ secrets.github_token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: ${{ steps.size.outputs.new_label }}
