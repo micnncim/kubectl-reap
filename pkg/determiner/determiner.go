@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +29,7 @@ type determiner struct {
 	usedPersistentVolumeClaims map[string]struct{} // key=PersistentVolumeClaim.Name
 
 	pods                   []*corev1.Pod
+	replicaSets            []*appsv1.ReplicaSet
 	persistentVolumeClaims []*corev1.PersistentVolumeClaim
 }
 
@@ -70,6 +72,14 @@ func New(resourceClient resource.Client, r *cliresource.Result, namespace string
 	if reapConfigMaps || reapSecrets || reapPersistentVolumeClaims || reapPodDisruptionBudgets {
 		var err error
 		d.pods, err = d.resourceClient.ListPods(ctx, namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if reapConfigMaps || reapSecrets {
+		var err error
+		d.replicaSets, err = d.resourceClient.ListReplicaSets(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -211,6 +221,7 @@ func (d *determiner) determineDeletionHorizontalPodAutoscaler(ctx context.Contex
 func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 	usedConfigMaps := make(map[string]struct{})
 
+	// Add Secrets used by Pods
 	for _, pod := range d.pods {
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
@@ -227,6 +238,37 @@ func (d *determiner) detectUsedConfigMaps() map[string]struct{} {
 		}
 
 		for _, volume := range pod.Spec.Volumes {
+			if volume.ConfigMap != nil {
+				usedConfigMaps[volume.ConfigMap.Name] = struct{}{}
+			}
+
+			if volume.Projected != nil {
+				for _, source := range volume.Projected.Sources {
+					if source.ConfigMap != nil {
+						usedConfigMaps[source.ConfigMap.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	// Add Secrets used by ReplicaSets
+	for _, rs := range d.replicaSets {
+		for _, container := range rs.Spec.Template.Spec.Containers {
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.ConfigMapRef != nil {
+					usedConfigMaps[envFrom.ConfigMapRef.Name] = struct{}{}
+				}
+			}
+
+			for _, env := range container.Env {
+				if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil {
+					usedConfigMaps[env.ValueFrom.ConfigMapKeyRef.Name] = struct{}{}
+				}
+			}
+		}
+
+		for _, volume := range rs.Spec.Template.Spec.Volumes {
 			if volume.ConfigMap != nil {
 				usedConfigMaps[volume.ConfigMap.Name] = struct{}{}
 			}
@@ -264,6 +306,37 @@ func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 		}
 
 		for _, volume := range pod.Spec.Volumes {
+			if volume.Secret != nil {
+				usedSecrets[volume.Secret.SecretName] = struct{}{}
+			}
+
+			if volume.Projected != nil {
+				for _, source := range volume.Projected.Sources {
+					if source.Secret != nil {
+						usedSecrets[source.Secret.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	// Add Secrets used by ReplicaSets
+	for _, rs := range d.replicaSets {
+		for _, container := range rs.Spec.Template.Spec.Containers {
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecrets[envFrom.SecretRef.Name] = struct{}{}
+				}
+			}
+
+			for _, env := range container.Env {
+				if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
+					usedSecrets[env.ValueFrom.SecretKeyRef.Name] = struct{}{}
+				}
+			}
+		}
+
+		for _, volume := range rs.Spec.Template.Spec.Volumes {
 			if volume.Secret != nil {
 				usedSecrets[volume.Secret.SecretName] = struct{}{}
 			}

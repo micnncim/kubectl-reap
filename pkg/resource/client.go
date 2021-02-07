@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -15,6 +16,7 @@ import (
 
 type Client interface {
 	ListPods(ctx context.Context, namespace string) ([]*corev1.Pod, error)
+	ListReplicaSets(ctx context.Context, namespace string) ([]*appsv1.ReplicaSet, error)
 	ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error)
 	ListPersistentVolumeClaims(ctx context.Context, namespace string) ([]*corev1.PersistentVolumeClaim, error)
 	GetUnstructured(ctx context.Context, apiVersion, kind, name, namespace string) (*unstructured.Unstructured, error)
@@ -47,6 +49,20 @@ func (c *client) ListPods(ctx context.Context, namespace string) ([]*corev1.Pod,
 	}
 
 	return pods, nil
+}
+
+func (c *client) ListReplicaSets(ctx context.Context, namespace string) ([]*appsv1.ReplicaSet, error) {
+	rsList, err := c.clientset.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	rss := make([]*appsv1.ReplicaSet, 0, len(rsList.Items))
+	for i := range rsList.Items {
+		rss = append(rss, &rsList.Items[i])
+	}
+
+	return rss, nil
 }
 
 func (c *client) ListServiceAccounts(ctx context.Context, namespace string) ([]*corev1.ServiceAccount, error) {

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,7 @@ import (
 
 const (
 	KindPod                     = "Pod"
+	KindReplicaSet              = "ReplicaSet"
 	KindConfigMap               = "ConfigMap"
 	KindSecret                  = "Secret"
 	KindServiceAccount          = "ServiceAccount"
@@ -34,6 +36,20 @@ func ObjectToPod(obj runtime.Object) (*corev1.Pod, error) {
 	}
 
 	return &pod, nil
+}
+
+func ObjectToReplicaSet(obj runtime.Object) (*appsv1.ReplicaSet, error) {
+	u, err := toUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	var rs appsv1.ReplicaSet
+	if err := fromUnstructured(u, &rs); err != nil {
+		return nil, err
+	}
+
+	return &rs, nil
 }
 
 func ObjectToPersistentVolume(obj runtime.Object) (*corev1.PersistentVolume, error) {
