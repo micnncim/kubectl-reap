@@ -22,4 +22,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: go test -v -race ./...
+      - run: go test -v -race -coverprofile=coverage.out ./...
+
+      - uses: codecov/codecov-action@v1
+        with:
+          files: coverage.out
+          verbose: true
