@@ -11,16 +11,16 @@
 
 Supported resources:
 
-|          Kind           |                 Condition                 |
-| ----------------------- | ----------------------------------------- |
-| Pod                     | Not running                               |
-| ConfigMap               | Not used by any Pods                      |
-| Secret                  | Not used by any Pods or ServiceAccounts   |
-| PersistentVolume        | Not satisfying any PersistentVolumeClaims |
-| PersistentVolumeClaim   | Not used by any Pods                      |
-| Job                     | Completed                                 |
-| PodDisruptionBudget     | Not targeting any Pods                    |
-| HorizontalPodAutoscaler | Not targeting any resources               |
+|          Kind           |                         Condition                          |
+| ----------------------- | ---------------------------------------------------------- |
+| Pod                     | Not running                                                |
+| ConfigMap               | Not referenced by any Pods or ReplicaSet                   |
+| Secret                  | Not referenced by any Pods, ReplicaSet, or ServiceAccounts |
+| PersistentVolume        | Not satisfying any PersistentVolumeClaims                  |
+| PersistentVolumeClaim   | Not referenced by any Pods                                 |
+| Job                     | Completed                                                  |
+| PodDisruptionBudget     | Not targeting any Pods                                     |
+| HorizontalPodAutoscaler | Not targeting any resources                                |
 
 Since this plugin supports dry-run as described below, it also helps you to find resources you misconfigured or forgot to delete.
 
