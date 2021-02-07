@@ -2,6 +2,7 @@
 
 [![actions-workflow-test][actions-workflow-test-badge]][actions-workflow-test]
 [![release][release-badge]][release]
+[![docker][docker-badge]][docker]
 [![codecov][codecov-badge]][codecov]
 [![pkg.go.dev][pkg.go.dev-badge]][pkg.go.dev]
 [![license][license-badge]][license]
@@ -48,6 +49,20 @@ $ brew install kubectl-reap
 
 ```
 $ go get github.com/micnncim/kubectl-reap/cmd/kubectl-reap
+```
+
+### Via Docker
+
+In Docker Hub:
+
+```
+$ docker run --rm -it micnncim/kubectl-reap kubectl-reap
+```
+
+In GitHub Container Registry:
+
+```
+$ docker run --rm -it ghcr.io/micnncim/kubectl-reap kubectl-reap
 ```
 
 ## Examples
@@ -211,6 +226,9 @@ This plugin provides more flexible, easy way to delete resources.
 
 [release]: https://github.com/micnncim/kubectl-reap/releases
 [release-badge]: https://img.shields.io/github/v/release/micnncim/kubectl-reap?style=for-the-badge&logo=github
+
+[docker]: https://hub.docker.com/repository/docker/micnncim/kubectl-reap
+[docker-badge]: https://img.shields.io/docker/v/micnncim/kubectl-reap?sort=semver&style=for-the-badge&logo=docker
 
 [codecov]: https://codecov.io/gh/micnncim/kubectl-reap
 [codecov-badge]: https://img.shields.io/codecov/c/github/micnncim/kubectl-reap?style=for-the-badge&logo=codecov
