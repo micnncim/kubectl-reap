@@ -5,20 +5,20 @@
 class KubectlReap < Formula
   desc "kubectl plugin that deletes unused Kubernetes resources"
   homepage "https://github.com/micnncim/kubectl-reap"
-  version "0.11.2"
+  version "0.11.3"
   bottle :unneeded
 
   if OS.mac?
-    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.2/kubectl-reap_0.11.2_darwin_amd64.tar.gz"
-    sha256 "4d129c76cf6d5d07b561c1e4465ae2cdcec6ee2683ad19efedf201489ad552cf"
+    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.3/kubectl-reap_0.11.3_darwin_amd64.tar.gz"
+    sha256 "53c2074e2dcab8c4d513013de9bd9746f4c4504c4bf07fb4956607de4766ed20"
   end
   if OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.2/kubectl-reap_0.11.2_linux_amd64.tar.gz"
-    sha256 "a37e90cfa36dd377cd24e7ed49ca002286ffb4ca8bc5227af42516074201abde"
+    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.3/kubectl-reap_0.11.3_linux_amd64.tar.gz"
+    sha256 "ceec75c07a030717f2658a77c459767b653c31b9f204d767633535f28af57295"
   end
   if OS.linux? && Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.2/kubectl-reap_0.11.2_linux_arm64.tar.gz"
-    sha256 "390d31b63712348d0f268aa4fc5ba5354768d207c8a792e4587a93b076791249"
+    url "https://github.com/micnncim/kubectl-reap/releases/download/v0.11.3/kubectl-reap_0.11.3_linux_arm64.tar.gz"
+    sha256 "4af1337b93f2098eb5138349a6692b5a616470a7d2372890cd99cb3c30f7f532"
   end
 
   def install
