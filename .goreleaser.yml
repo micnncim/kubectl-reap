@@ -8,3 +8,11 @@ builds:
   - linux
   - darwin
   - windows
+
+brews:
+  - tap:
+      owner: micnncim
+      name: kubectl-reap
+    folder: Formula
+    homepage: https://github.com/micnncim/kubectl-reap
+    description: kubectl plugin that deletes unused Kubernetes resources

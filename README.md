@@ -37,6 +37,13 @@ Download precompiled binaries from [GitHub Releases](https://github.com/micnncim
 $ kubectl krew install reap
 ```
 
+### Via Homebrew
+
+```
+$ brew tap micnncim/kubectl-reap https://github.com/micnncim/kubectl-reap
+$ brew install kubectl-reap
+```
+
 ### Via Go
 
 ```
