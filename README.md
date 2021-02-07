@@ -2,6 +2,7 @@
 
 [![actions-workflow-test][actions-workflow-test-badge]][actions-workflow-test]
 [![release][release-badge]][release]
+[![codecov][codecov-badge]][codecov]
 [![pkg.go.dev][pkg.go.dev-badge]][pkg.go.dev]
 [![license][license-badge]][license]
 
@@ -203,6 +204,9 @@ This plugin provides more flexible, easy way to delete resources.
 
 [release]: https://github.com/micnncim/kubectl-reap/releases
 [release-badge]: https://img.shields.io/github/v/release/micnncim/kubectl-reap?style=for-the-badge&logo=github
+
+[codecov]: https://codecov.io/gh/micnncim/kubectl-reap
+[codecov-badge]: https://img.shields.io/codecov/c/github/micnncim/kubectl-reap?style=for-the-badge&logo=codecov
 
 [pkg.go.dev]: https://pkg.go.dev/github.com/micnncim/kubectl-reap?tab=overview
 [pkg.go.dev-badge]: http://bit.ly/pkg-go-dev-badge
