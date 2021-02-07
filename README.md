@@ -228,7 +228,7 @@ This plugin provides more flexible, easy way to delete resources.
 [release-badge]: https://img.shields.io/github/v/release/micnncim/kubectl-reap?style=for-the-badge&logo=github
 
 [docker]: https://hub.docker.com/repository/docker/micnncim/kubectl-reap
-[docker-badge]: https://img.shields.io/docker/v/micnncim/kubectl-reap?sort=semver&style=for-the-badge&logo=docker
+[docker-badge]: https://img.shields.io/docker/v/micnncim/kubectl-reap?label=docker&sort=semver&style=for-the-badge&logo=docker
 
 [codecov]: https://codecov.io/gh/micnncim/kubectl-reap
 [codecov-badge]: https://img.shields.io/codecov/c/github/micnncim/kubectl-reap?style=for-the-badge&logo=codecov
