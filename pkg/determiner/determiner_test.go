@@ -2,6 +2,7 @@ package determiner
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -684,6 +685,72 @@ func Test_determiner_determineUsedPodDisruptionBudget(t *testing.T) {
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+func Test_determiner_determineUsedSecret(t *testing.T) {
+	const (
+		fakeSecret = "fake-secret"
+	)
+	type fields struct {
+		pods []*corev1.Pod
+	}
+	type args struct {
+		secret string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   map[string]struct{}
+	}{
+		{
+			name: "secrets used in ImagePullSecret should be determined as used",
+			fields: fields{
+				pods: []*corev1.Pod{
+					{
+						Spec: corev1.PodSpec{
+							ImagePullSecrets: []corev1.LocalObjectReference{{fakeSecret}}},
+					},
+				},
+			},
+			args: args{
+				secret: fakeSecret,
+			},
+			want: map[string]struct{}{fakeSecret: {}},
+		},
+		{
+			name: "secrets used in EnvFrom should be determined as used",
+			fields: fields{
+				pods: []*corev1.Pod{{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							EnvFrom: []corev1.EnvFromSource{
+								{SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: fakeSecret}}},
+							},
+						}},
+					},
+				}},
+			},
+			args: args{
+				secret: fakeSecret,
+			},
+			want: map[string]struct{}{fakeSecret: {}},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := &determiner{
+				pods: tt.fields.pods,
+			}
+			got := d.detectUsedSecrets(nil)
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("There is a difference in usedSecrets maps:\ngot %s,\nexpected %s", got, tt.want)
 			}
 		})
 	}

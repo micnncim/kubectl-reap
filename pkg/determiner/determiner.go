@@ -291,6 +291,10 @@ func (d *determiner) detectUsedSecrets(sas []*corev1.ServiceAccount) map[string]
 
 	// Add Secrets used by Pods
 	for _, pod := range d.pods {
+		for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
+			usedSecrets[imagePullSecret.Name] = struct{}{}
+		}
+
 		for _, container := range pod.Spec.Containers {
 			for _, envFrom := range container.EnvFrom {
 				if envFrom.SecretRef != nil {
