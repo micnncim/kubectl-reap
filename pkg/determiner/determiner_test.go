@@ -2,7 +2,6 @@ package determiner
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
@@ -749,8 +748,8 @@ func Test_determiner_determineUsedSecret(t *testing.T) {
 				pods: tt.fields.pods,
 			}
 			got := d.detectUsedSecrets(nil)
-			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("There is a difference in usedSecrets maps:\ngot %s,\nexpected %s", got, tt.want)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("(-want +got):\n%s", diff)
 			}
 		})
 	}
